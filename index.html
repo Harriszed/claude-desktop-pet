@@ -1,0 +1,616 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
+  .card { box-sizing: border-box; width: 340px; height: 100vh; margin: 0; padding: 10px 10px 8px; border: 1px solid #d97757; border-radius: 12px; background: #1f1d1b; -webkit-app-region: drag; position: relative; }
+  .project { height: 18px; font-size: 13px; color: #c9c3bb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scene { position: relative; width: 318px; height: 106px; margin-top: 4px; overflow: hidden; border-radius: 4px; }
+  .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #char { position: absolute; top: -10.6px; width: 128px; height: 117.3px; image-rendering: pixelated; }
+  .under { position: relative; width: 318px; height: 0; overflow: hidden; background: #3b2f28; border-radius: 0 0 4px 4px; transition: none; }
+  body.deep .under { height: 84px; }
+  .under svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .laptop-wrap { position: absolute; width: 36px; height: 27px; overflow: hidden; image-rendering: pixelated; }
+  .laptop { position: absolute; inset: 0; transform: translateY(100%); transition: transform 0.5s ease-out; }
+  .laptop.up { transform: none; }
+  .laptop svg { width: 100%; height: 100%; display: block; }
+  .helper { position: absolute; width: 72px; height: 66px; image-rendering: pixelated; animation: drop 0.4s ease-out; transition: opacity 0.3s; }
+  .helper, .laptop-wrap, .info { -webkit-app-region: no-drag; cursor: pointer; }
+  .helper, .laptop-wrap { pointer-events: auto; }
+  .info { position: absolute; left: 10px; right: 10px; bottom: 36px; box-sizing: border-box; padding: 7px 9px; background: #14120fee; border: 1px solid #d9775788; border-radius: 6px; font-size: 11.5px; line-height: 1.55; color: #e8e2da; cursor: default; }
+  .info[hidden] { display: none; }
+  .info .l1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .info .l2, .info .l3 { color: #b9b2a8; }
+  .info b { color: #f0a58c; font-weight: 600; }
+  .helper.leaving { opacity: 0; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-26px) scale(0.6); } to { opacity: 1; transform: none; } }
+  .more { position: absolute; right: 6px; top: 4px; font-size: 11px; color: #e8e2da; background: #00000066; padding: 1px 6px; border-radius: 8px; }
+  .status { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 13px; color: #e8e2da; }
+  .status b { font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #d97757; box-sizing: border-box; }
+  .dot.live { background: #d97757; }
+  .status span { color: #b9b2a8; }
+  .top { display: flex; align-items: center; gap: 8px; height: 18px; }
+  .top .project { flex: 1; min-width: 0; }
+  .tasks { display: flex; align-items: center; gap: 6px; font: 10.5px/1 Consolas, "Courier New", monospace; color: #b9b2a8; }
+  .tasks[hidden] { display: none; }
+  .multi { display: flex; gap: 8px; min-width: 0; font: 10.5px/1 Consolas, "Courier New", monospace; color: #b9b2a8; }
+  .multi[hidden] { display: none; }
+  .multi span { cursor: pointer; -webkit-app-region: no-drag; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .project::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 6px; background: var(--pc, #d97757); }
+  .multi i { width: 5px; height: 5px; background: #6b645b; flex-shrink: 0; }
+  .multi .busy i { background: #d97757; animation: blink 1s steps(2) infinite; }
+  .multi .wait i { background: #f0b35c; animation: blink 0.5s steps(2) infinite; }
+  .multi .done i { background: #7bc47f; }
+  .cells { display: flex; gap: 2px; }
+  .cell { width: 6px; height: 8px; background: #3a3530; }
+  .cell.done { background: #d97757; }
+  .cell.cur { background: #f2b49f; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.3; } }
+  #char { -webkit-app-region: no-drag; cursor: pointer; }
+  .bubble { position: absolute; top: 5px; left: 4px; max-width: 250px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 5; }
+  .bubble.on { opacity: 1; }
+  .bubble span { display: block; padding: 3px 8px; background: #fffdf5; color: #1f1d1b; font: 700 10.5px/13px Consolas, "Courier New", monospace; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px)); }
+  .bubble { top: 36px; }
+  .bubble::after { content: ""; position: absolute; top: 8px; width: 3px; height: 3px; background: #fffdf5; }
+  .bubble::before { content: ""; position: absolute; top: 11px; width: 3px; height: 3px; background: #fffdf5; }
+  .bubble.l::after { right: -3px; } .bubble.l::before { right: -6px; top: 8px; }
+  .bubble.r::after { left: -3px; } .bubble.r::before { left: -6px; top: 8px; }
+  .wx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+  .wx i { position: absolute; display: block; }
+  .wx i.r { top: -10px; width: 2px; height: 7px; background: #bcd3ee; opacity: 0.65; animation: rain linear infinite; }
+  @keyframes rain { to { transform: translate(-8px, 125px); } }
+  .wx i.s { top: -6px; width: 3px; height: 3px; background: #fff; animation: snow linear infinite; }
+  @keyframes snow { 0% { transform: translate(0, 0); } 50% { transform: translate(8px, 55px); } 100% { transform: translate(-4px, 118px); } }
+  .wx .fog { position: absolute; left: -100%; width: 300%; height: 14px; background: linear-gradient(90deg, transparent, #e8eef52e 30%, #e8eef52e 70%, transparent); animation: fog linear infinite; }
+  @keyframes fog { to { transform: translateX(33.3%); } }
+  .wx .flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: flash 7s infinite; }
+  @keyframes flash { 0%, 92%, 96%, 100% { opacity: 0; } 93% { opacity: 0.5; } 94.5% { opacity: 0.1; } 95% { opacity: 0.4; } }
+  .wx i.f { width: 3px; height: 3px; background: #d8f06a; box-shadow: 0 0 5px #d8f06a; animation: fly ease-in-out infinite alternate; }
+  @keyframes fly { 0% { opacity: 0; transform: translate(0, 0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(12px, -10px); } }
+  .card::after { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; opacity: 0; }
+  .card.shimmer { animation: ping 1.6s ease-out 1; }
+  @keyframes ping { 0% { border-color: #7bc47f; } 100% { border-color: #d97757; } }
+  @keyframes sweep { 0% { opacity: 1; background-position: 150% 0; } 100% { opacity: 1; background-position: -50% 0; } }
+  .card.glow { animation: glow 1.6s ease-in-out infinite; }
+  @keyframes glow { 50% { box-shadow: inset 0 0 14px 1px #d9775799; border-color: #f2a07f; } }
+  .sp { position: absolute; width: 2px; height: 2px; background: #fff4c2; box-shadow: 2px 0 #fff4c2, -2px 0 #fff4c2, 0 2px #fff4c2, 0 -2px #fff4c2; opacity: 0; animation: tw 0.9s steps(3) 2; z-index: 6; pointer-events: none; }
+  @keyframes tw { 0% { opacity: 0; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0; transform: scale(0.6); } }
+  #label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .usage { display: flex; gap: 8px; font-size: 10px; color: #8d867c; flex-shrink: 0; }
+  .usage[hidden] { display: none; }
+  .u { position: relative; padding-bottom: 4px; white-space: nowrap; }
+  .u em { font-style: normal; }
+  .u b { font-weight: 600; color: #d9d3ca; }
+  .u i { font-style: normal; }
+  .u::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #3a3530; }
+  .u s { position: absolute; left: 0; bottom: 0; height: 2px; background: #d97757; }
+  .u.mid b { color: #f0b35c; } .u.mid s { background: #f0b35c; }
+  .u.hi b { color: #ef6a5a; } .u.hi s { background: #ef6a5a; }
+  body.compact .top, body.compact .scene, body.compact .under, body.compact .info { display: none; }
+  body.compact .status { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top"><div class="project" id="project">Claude</div><div class="multi" id="multi" hidden></div><div class="tasks" id="tasks" hidden></div></div>
+  <div class="scene" id="scene">
+    <svg id="backdrop" viewBox="0 20 600 200" preserveAspectRatio="none" shape-rendering="crispEdges"></svg>
+    <img id="char" src="assets/idle.svg" alt="">
+    <div class="bubble" id="bubble"><span id="bt"></span></div>
+    <div class="wx" id="wx"></div>
+  </div>
+  <div class="under" id="under">
+    <svg id="cave" viewBox="0 0 318 84" shape-rendering="crispEdges"></svg>
+    <div class="more" id="more" hidden></div>
+  </div>
+  <div class="info" id="info" hidden></div>
+  <div class="status"><div class="dot" id="dot"></div><b>Claude</b><span id="label">Waiting for you</span><div class="usage" id="usage" hidden></div></div>
+</div>
+<script>
+const LANE_W = 600, VIEW_TOP = 20, VIEW_H = 200, GROUND_Y = 196, PX = 6
+const K = 318 / LANE_W
+const WALK_SPEED = 90, MIN_X = 120, MAX_X = 240, CENTER_X = 180, WANDER_MS = 15000
+const LABELS = {
+  idle: 'Waiting for you', thinking: 'Thinking', 'using-tool': 'Using a tool', 'directing-helpers': 'Directing helpers',
+  done: 'Done!', greeting: 'Hello!', asleep: 'Asleep', reading: 'Reading files', writing: 'Writing',
+  'running-commands': 'Running commands', 'searching-web': 'Searching the web', 'searching-code': 'Searching the code',
+  testing: 'Running tests', committing: 'Committing', 'waiting-for-you': 'Needs you', error: 'Something failed',
+  compacting: 'Tidying up memory', 'context-nearly-full': 'Memory nearly full', 'plan-progress': 'Updating the plan',
+  'server-running': 'Server running', typing: 'Listening', walking: 'Walking',
+}
+
+const SKY = ['#171a2c', '#1b1f35', '#20253f', '#262c4a']
+const STARS = [[30, 40], [96, 64], [150, 34], [222, 52], [276, 30], [330, 70], [392, 44], [462, 62], [522, 36], [570, 78], [60, 96], [186, 104], [300, 112], [420, 100], [540, 118]]
+const HILLS = [5, 6, 7, 7, 8, 8, 7, 6, 6, 5, 5, 6, 8, 9, 10, 10, 9, 8, 7, 6, 6, 7, 8, 8, 7, 6]
+const rect = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`
+const PALETTES = {
+  night: { sky: ['#171a2c', '#1b1f35', '#20253f', '#262c4a'], hill: ['#2c3150', '#2a2f4c'], grass: ['#6b8f4e', '#557540'], tuft: '#7da35b', stars: 1, cloud: 0, cloudc: '#3a4166' },
+  dawn: { sky: ['#3b3a63', '#7a5a82', '#d9808a', '#f4b27a'], hill: ['#5c4068', '#563b62'], grass: ['#6f8f55', '#587545'], tuft: '#86a863', stars: 0.3, cloud: 0.5, cloudc: '#ffd3c4' },
+  day: { sky: ['#4a90d9', '#6aa8e4', '#8cc0ee', '#b0d6f4'], hill: ['#5f8a78', '#58826f'], grass: ['#6fae4e', '#5a9340'], tuft: '#8cc462', stars: 0, cloud: 1, cloudc: '#ffffff' },
+  sunset: { sky: ['#2f2b5a', '#8a4a7a', '#e0705a', '#f5a55a'], hill: ['#53325a', '#4d2d54'], grass: ['#6b8648', '#557040'], tuft: '#80a05a', stars: 0.2, cloud: 0.5, cloudc: '#ffc29a' },
+}
+const TIMELINE = [[0, 'night'], [5, 'night'], [6.5, 'dawn'], [8.5, 'day'], [17, 'day'], [18.5, 'sunset'], [20.5, 'night'], [24, 'night']]
+let wxKind = 'clear'
+const WX = { clear: {}, partly: { clouds: 4 }, cloudy: { tint: '#7b8494', amt: 0.35, clouds: 7, sun: 0.35 }, fog: { tint: '#a9b3bd', amt: 0.45, clouds: 3, sun: 0.3 }, rain: { tint: '#5d6677', amt: 0.5, clouds: 8, sun: 0.12 }, storm: { tint: '#3e4456', amt: 0.62, clouds: 9, sun: 0.05 }, snow: { tint: '#aab4c4', amt: 0.4, clouds: 7, sun: 0.2 } }
+const hex = c => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16))
+const mix = (a, b, t) => '#' + hex(a).map((v, k) => Math.round(v + (hex(b)[k] - v) * t).toString(16).padStart(2, '0')).join('')
+const blend = (a, b, t) => Array.isArray(a) ? a.map((c, k) => mix(c, b[k], t)) : typeof a === 'string' ? mix(a, b, t) : a + (b - a) * t
+const paletteAt = h => {
+  let k = 0
+  while (k < TIMELINE.length - 2 && h >= TIMELINE[k + 1][0]) k++
+  const [h0, n0] = TIMELINE[k]
+  const [h1, n1] = TIMELINE[k + 1]
+  const t = (h - h0) / (h1 - h0)
+  const A = PALETTES[n0], B = PALETTES[n1]
+  const out = {}
+  for (const key of Object.keys(A)) out[key] = blend(A[key], B[key], t)
+  return out
+}
+const hourNow = () => {
+  const o = new URLSearchParams(location.search).get('hour')
+  if (o !== null) return parseFloat(o)
+  const d = new Date()
+  return d.getHours() + d.getMinutes() / 60
+}
+const orb = (cx, cy, r, fill) => {
+  const p = []
+  for (let dy = -r; dy <= r; dy += 3) { const w = Math.round(Math.sqrt(r * r - dy * dy) / 3) * 3; p.push(rect(cx - w, cy + dy, w * 2, 3, fill)) }
+  return p.join('')
+}
+const CLOUDS = [[60, 52, 1], [318, 40, 0.8], [452, 80, 0.9], [180, 34, 0.7], [560, 46, 0.8], [230, 86, 0.6], [8, 92, 0.7], [390, 98, 0.6], [510, 22, 0.7]]
+const cloud = (x, y, s, o, col) => `<g opacity="${(0.9 * o).toFixed(2)}">${rect(x + 12 * s, y - 6, 24 * s, 6, col)}${rect(x + 4 * s, y, 42 * s, 6, col)}${rect(x, y + 6, 54 * s, 6, col)}${rect(x + 8 * s, y + 12, 36 * s, 3, col)}</g>`
+const skyGradient = (stops, bands) => Array.from({ length: bands }, (_, k) => {
+  const t = (k / (bands - 1)) * (stops.length - 1)
+  const j = Math.min(stops.length - 2, Math.floor(t))
+  return mix(stops[j], stops[j + 1], t - j)
+})
+const ridge = (p, base, amp, f1, f2, ph, col) => {
+  for (let x = 0; x < LANE_W; x += 6) {
+    const hgt = Math.round((base + amp * Math.sin(x / f1 + ph) + amp * 0.45 * Math.sin(x / f2 + ph * 2)) / 3) * 3
+    p.push(rect(x, GROUND_Y - hgt, 6, hgt + 1, col))
+  }
+}
+const TREES = [[34, 1], [58, 0.8], [150, 1.1], [290, 0.9], [318, 1.2], [436, 1], [532, 1.1], [566, 0.8]]
+const tree = (x, s, col) => rect(x - 3, GROUND_Y - 6 * s, 6, 6 * s, col) + rect(x - 12 * s, GROUND_Y - 18 * s, 24 * s, 9 * s, col) + rect(x - 9 * s, GROUND_Y - 27 * s, 18 * s, 9 * s, col) + rect(x - 5 * s, GROUND_Y - 36 * s, 10 * s, 9 * s, col)
+const backdrop = () => {
+  const h = hourNow()
+  const c = paletteAt(h)
+  const w = WX[wxKind] || {}
+  if (w.tint) {
+    c.sky = c.sky.map(v => mix(v, w.tint, w.amt))
+    c.hill = c.hill.map(v => mix(v, w.tint, w.amt * 0.6))
+    c.stars *= 1 - w.amt
+    c.cloud = Math.max(c.cloud, 0.75)
+    c.cloudc = mix(c.cloudc, w.tint, 0.45)
+  }
+  if (wxKind === 'snow') { c.grass = c.grass.map(v => mix(v, '#eef3fa', 0.75)); c.tuft = '#ffffff'; c.hill = c.hill.map(v => mix(v, '#eef3fa', 0.3)) }
+  const clarity = w.sun ?? 1
+  const p = []
+  const BANDS = 16
+  const band = Math.ceil((GROUND_Y - VIEW_TOP) / BANDS)
+  skyGradient(c.sky, BANDS).forEach((f, i) => p.push(rect(0, VIEW_TOP + i * band, LANE_W, band + 1, f)))
+  if (c.stars > 0.02) p.push(`<g opacity="${c.stars.toFixed(2)}">${STARS.map(([x, y], k) => rect(x, y, k % 4 === 0 ? 4 : 3, k % 4 === 0 ? 4 : 3, '#e9e4d4')).join('')}</g>`)
+  const arc = t => [Math.round(40 + t * 520), Math.round(GROUND_Y - 50 - Math.sin(Math.PI * t) * (GROUND_Y - VIEW_TOP - 84))]
+  if (h >= 6 && h <= 19.5) {
+    const t = (h - 6) / 13.5
+    const [sx, sy] = arc(t)
+    const low = Math.min(1, (1 - Math.sin(Math.PI * t)) * 1.4)
+    const col = mix('#fff0a0', '#ff9a3c', low)
+    p.push(`<g opacity="${clarity}"><g opacity="0.12">${orb(sx, sy, 39, col)}</g><g opacity="0.22">${orb(sx, sy, 27, col)}</g>${orb(sx, sy, 15, col)}${orb(sx, sy, 9, mix(col, '#ffffff', 0.55))}</g>`)
+  }
+  const mt = h >= 19.5 ? (h - 19.5) / 10 : h < 5.5 ? (h + 4.5) / 10 : -1
+  if (mt >= 0 && mt <= 1) {
+    const [mx, my] = arc(mt)
+    p.push(`<g opacity="${clarity}">`)
+    p.push(`<g opacity="0.12">${orb(mx, my, 27, '#cfd8ff')}</g>`)
+    ;[[2, 0, 4], [1, 1, 6], [0, 2, 8], [0, 3, 8], [0, 4, 8], [0, 5, 8], [1, 6, 6], [2, 7, 4]].forEach(([dx, dy, w]) => p.push(rect(mx - 12 + dx * 3, my - 12 + dy * 3, w * 3, 3, '#efe3c2')))
+    p.push(rect(mx - 3, my - 3, 6, 6, '#d9cba6'), rect(mx + 3, my + 6, 3, 3, '#d9cba6'), '</g>')
+  }
+  if (c.cloud > 0.02) CLOUDS.slice(0, w.clouds || 3).forEach(([x, y, s]) => p.push(cloud(x, y, s, c.cloud, c.cloudc)))
+  const far = mix(c.sky[3], c.hill[0], 0.55)
+  const near = mix(c.hill[0], '#000000', 0.18)
+  ridge(p, 54, 11, 83, 37, 1, far)
+  ridge(p, 30, 8, 57, 23, 4, near)
+  TREES.forEach(([x, s]) => p.push(tree(x, s, mix(near, '#000000', 0.3))))
+  p.push(rect(0, GROUND_Y, LANE_W, 4, c.grass[0]), rect(0, GROUND_Y + 4, LANE_W, 3, c.grass[1]))
+  p.push(rect(0, GROUND_Y + 7, LANE_W, VIEW_TOP + VIEW_H - GROUND_Y - 7, '#3b2f28'))
+  for (let x = 14; x < LANE_W; x += 47) p.push(rect(x, GROUND_Y + 12 + ((x * 7) % 5), 4, 3, '#4d3e34'))
+  for (let x = 8; x < LANE_W; x += 31) p.push(rect(x, GROUND_Y - 3, 3, 3, c.tuft))
+  return p.join('')
+}
+const drawBackdrop = () => { document.getElementById('backdrop').innerHTML = backdrop() }
+drawBackdrop()
+
+const ch = document.getElementById('char')
+const label = document.getElementById('label')
+const dot = document.getElementById('dot')
+let projectName = 'Claude'
+let state = 'idle', x = CENTER_X, walkTimer = 0, lastWalk = Date.now(), n = 0
+
+const show = (name, flip) => {
+  ch.style.transform = flip ? 'scaleX(-1)' : ''
+  ch.src = `assets/${name}.svg?${++n}`
+}
+const place = (nx, ms) => {
+  ch.style.transition = ms ? `left ${ms}ms linear` : 'none'
+  ch.style.left = `${nx * K}px`
+  x = nx
+  positionBubble(ms)
+}
+const settle = () => { walkTimer = 0; show(state) ; label.textContent = LABELS[state] ?? '' }
+
+const walkTo = to => {
+  const ms = (Math.abs(to - x) / WALK_SPEED) * 1000
+  lastWalk = Date.now()
+  show('walking', to < x)
+  label.textContent = LABELS.walking
+  place(to, ms)
+  clearTimeout(walkTimer)
+  walkTimer = setTimeout(settle, ms)
+}
+
+const setState = s => {
+  clearTimeout(walkTimer)
+  walkTimer = 0
+  state = s
+  if (quip) { quip = ''; renderBubble() }
+  dot.className = 'dot' + (s === 'idle' || s === 'asleep' ? '' : ' live')
+  if (s !== 'idle') place(CENTER_X, 0)
+  else place(x, 0)
+  show(s)
+  label.textContent = LABELS[s] ?? ''
+  lastWalk = Date.now()
+}
+
+window.pet.onState(({ state: s, project, keep }) => {
+  projectName = project || 'Claude'
+  document.getElementById('project').textContent = projectName
+  document.getElementById('project').style.setProperty('--pc', projColor(projectName))
+  if (!keep) { setState(s); fx(s) }
+})
+
+const FLOOR = 76, HS = 0.3, UW = 318, MAX_SHOWN = 8, HSPEED = 45
+const helperTop = FLOOR - 196 * HS
+const caveSvg = (() => {
+  const r = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`
+  const p = [r(0, 0, UW, 84, '#3b2f28')]
+  // The cavern: a stepped dark hollow with a flat floor and a few stones and roots.
+  p.push(r(10, 4, UW - 20, 76, '#241b17'), r(6, 10, 4, 64, '#241b17'), r(UW - 10, 10, 4, 64, '#241b17'), r(14, 0, UW - 28, 4, '#241b17'))
+  p.push(r(10, FLOOR, UW - 20, 4, '#33271f'))
+  for (let x = 24; x < UW - 20; x += 53) p.push(r(x, 8, 3, 8 + (x % 3) * 4, '#4a3a2e'))
+  for (let x = 40; x < UW - 20; x += 71) p.push(r(x, FLOOR - 3, 6, 3, '#4d3e34'))
+  for (let x = 18; x < UW - 10; x += 37) p.push(r(x, 82, 4, 2, '#4d3e34'))
+  return p.join('')
+})()
+document.getElementById('cave').innerHTML = caveSvg
+
+
+// ---- Surface laptops: one pops out of the ground and flips open for each running helper ----
+const L_SLOTS = [214, 76, 252, 38, 282, 2]
+const LAPTOP_TOP = (GROUND_Y - VIEW_TOP) * K - 25
+const lr = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`
+const BASE = lr(0, 7, 12, 1, '#b8bec8') + lr(0, 8, 12, 1, '#7a808a') + lr(4, 7, 4, 1, '#9aa0aa')
+const LAPTOP_FRAMES = [
+  BASE + lr(0, 5, 12, 2, '#4b505a') + lr(0, 5, 12, 1, '#5d636d'),
+  BASE + lr(0, 6, 12, 1, '#4b505a') + lr(1, 4, 10, 2, '#2a2d33'),
+  BASE + lr(0, 6, 12, 1, '#4b505a') + lr(1, 2, 10, 4, '#2a2d33') + lr(2, 3, 8, 2, '#8fd8ff'),
+  BASE + lr(1, 0, 10, 7, '#2a2d33') + lr(2, 1, 8, 5, '#8fd8ff'),
+]
+const SCREENS = [
+  lr(3, 2, 5, 1, '#e8f6ff') + lr(3, 4, 3, 1, '#e8f6ff'),
+  lr(3, 2, 3, 1, '#e8f6ff') + lr(3, 3, 5, 1, '#e8f6ff') + lr(3, 5, 2, 1, '#e8f6ff'),
+]
+const laptopSvg = body => `<svg viewBox="0 0 12 9" shape-rendering="crispEdges">${body}</svg>`
+const laptops = new Map()
+const openLaptop = (id, slot) => {
+  const wrap = document.createElement('div')
+  wrap.className = 'laptop-wrap'
+  wrap.dataset.id = id
+  wrap.style.left = `${L_SLOTS[slot]}px`
+  wrap.style.top = `${LAPTOP_TOP}px`
+  const inner = document.createElement('div')
+  inner.className = 'laptop'
+  inner.innerHTML = laptopSvg(LAPTOP_FRAMES[0])
+  wrap.appendChild(inner)
+  document.getElementById('scene').appendChild(wrap)
+  const l = { wrap, inner, timers: [], flicker: 0 }
+  laptops.set(id, l)
+  requestAnimationFrame(() => requestAnimationFrame(() => inner.classList.add('up')))
+  ;[1, 2, 3].forEach((f, k) => l.timers.push(setTimeout(() => { inner.innerHTML = laptopSvg(LAPTOP_FRAMES[f]) }, 600 + k * 170)))
+  l.timers.push(setTimeout(() => {
+    let t = 0
+    const draw = () => { inner.innerHTML = laptopSvg(LAPTOP_FRAMES[3] + SCREENS[t++ % 2]) }
+    draw()
+    l.flicker = setInterval(draw, 550)
+  }, 1150))
+}
+const closeLaptop = id => {
+  const l = laptops.get(id)
+  if (!l) return
+  laptops.delete(id)
+  l.timers.forEach(clearTimeout)
+  clearInterval(l.flicker)
+  ;[3, 2, 1, 0].forEach((f, k) => setTimeout(() => { l.inner.innerHTML = laptopSvg(LAPTOP_FRAMES[f]) }, k * 140))
+  setTimeout(() => l.inner.classList.remove('up'), 600)
+  setTimeout(() => l.wrap.remove(), 1200)
+}
+
+const helperEls = new Map()
+const under = document.getElementById('under')
+const wander = h => {
+  const el = h.el
+  const go = () => {
+    if (!el.isConnected || h.gone) return
+    const to = Math.round(-8 + Math.random() * (UW - 64 + 8))
+    const from = parseFloat(el.style.left)
+    const ms = (Math.abs(to - from) / HSPEED) * 1000
+    el.style.transform = to < from ? 'scaleX(-1)' : ''
+    el.dataset.shown = 'walking'
+    el.src = `assets/walking.svg?${++n}`
+    el.style.transition = `left ${ms}ms linear`
+    el.style.left = `${to}px`
+    h.timer = setTimeout(work, ms)
+  }
+  const work = () => {
+    if (h.gone) return
+    el.style.transition = 'none'
+    el.dataset.shown = h.state
+    el.src = `assets/${h.state}.svg?${++n}`
+    h.timer = setTimeout(go, 2500 + Math.random() * 3000)
+  }
+  h.timer = setTimeout(work, 100)
+}
+window.pet.onHelpers(list => {
+  const keep = new Set(list.map(h => h.id))
+  for (const [id, h] of helperEls) if (!keep.has(id)) { h.gone = true; clearTimeout(h.timer); h.el.classList.add('leaving'); setTimeout(() => h.el.remove(), 300); helperEls.delete(id) }
+  list.slice(0, MAX_SHOWN).forEach((s, idx) => {
+    let h = helperEls.get(s.id)
+    if (!h) {
+      const el = document.createElement('img')
+      el.className = 'helper'
+      el.dataset.id = s.id
+      el.style.top = `${helperTop}px`
+      el.style.left = `${Math.round(-8 + ((idx * 67) % (UW - 64)))}px`
+      h = { el, state: s.state, gone: false, timer: 0 }
+      helperEls.set(s.id, h)
+      under.appendChild(el)
+      wander(h)
+    }
+    h.state = s.state
+    // Standing helpers switch activity at once; walking ones change when they next stop.
+    if (h.el.dataset.shown && h.el.dataset.shown !== 'walking' && h.el.dataset.shown !== s.state) { h.el.dataset.shown = s.state; h.el.src = `assets/${s.state}.svg?${++n}` }
+  })
+  const shown = list.slice(0, L_SLOTS.length)
+  const keepL = new Set(shown.map(h => h.id))
+  for (const id of [...laptops.keys()]) if (!keepL.has(id)) closeLaptop(id)
+  const used = new Set([...laptops.values()].map(l => L_SLOTS.indexOf(parseFloat(l.wrap.style.left))))
+  shown.forEach(h => { if (!laptops.has(h.id)) { const slot = L_SLOTS.findIndex((_, k) => !used.has(k)); used.add(slot); openLaptop(h.id, slot) } })
+  document.body.classList.toggle('deep', list.length > 0)
+  const more = document.getElementById('more')
+  more.hidden = list.length <= MAX_SHOWN
+  more.textContent = `+${list.length - MAX_SHOWN}`
+})
+
+// ---- Click a helper to see its details ----
+const STATE_LABEL = { thinking: 'Thinking', reading: 'Reading', writing: 'Writing', 'searching-web': 'Searching web', 'searching-code': 'Searching code', 'running-commands': 'Running command', testing: 'Testing', committing: 'Committing', 'server-running': 'Running server', 'plan-progress': 'Planning', 'using-tool': 'Using a tool', greeting: 'Starting up' }
+const prettyModel = m => {
+  const x = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(m || '')
+  if (x) return `${x[1][0].toUpperCase()}${x[1].slice(1)} ${x[2]}${x[3] ? '.' + x[3] : ''}`
+  const y = /^claude-(\d+)(?:-(\d+))?-([a-z]+)/.exec(m || '')
+  return y ? `${y[3][0].toUpperCase()}${y[3].slice(1)} ${y[1]}${y[2] ? '.' + y[2] : ''}` : (m || '')
+}
+const fmtTime = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s` }
+const fmtTokens = t => (t >= 1000 ? `${(t / 1000).toFixed(1)}k` : `${t}`)
+const infoEl = document.getElementById('info')
+let infoId = null
+let infoData = null
+const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
+const drawInfo = () => {
+  if (!infoData) { infoEl.hidden = true; return }
+  const d = infoData
+  if (d.main) {
+    const act = meta.action || (state === 'idle' ? 'Waiting for you' : '')
+    const work = meta.busySince ? `Working for ${fmtTime(Date.now() - meta.busySince)}` : 'Not working right now'
+    const helpers = meta.helpers ? ` &middot; ${meta.helpers} helper${meta.helpers > 1 ? 's' : ''}` : ''
+    infoEl.innerHTML = `<div class="l1"><b>${esc(LABELS[state] || state)}</b> &middot; ${esc(projectName)}</div><div class="l2">${esc(act || 'Thinking it over')}</div><div class="l3">${work}${helpers}</div>`
+    infoEl.hidden = false
+    return
+  }
+  const l1 = [`<b>${esc(STATE_LABEL[d.state] || d.state)}</b>`, esc(d.name || d.type || 'Helper'), esc(prettyModel(d.model))].filter(Boolean).join(' &middot; ')
+  const time = d.start ? fmtTime(Date.now() - d.start) : '-'
+  infoEl.innerHTML = `<div class="l1">${l1}</div><div class="l2">Spawned by the main agent</div><div class="l3">${time} &middot; ${fmtTokens(d.tokens)} tokens</div>`
+  infoEl.hidden = false
+}
+const refreshInfo = async () => {
+  if (!infoId || infoId === 'main') return
+  const id = infoId
+  const d = await window.pet.helperInfo(id)
+  if (infoId !== id) return
+  infoData = d
+  if (!d) infoId = null
+  drawInfo()
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('.helper, .laptop-wrap, #char')
+  const id = t && (t.id === 'char' ? 'main' : t.dataset.id)
+  if (!id || id === infoId) { infoId = null; infoData = null; drawInfo(); return }
+  infoId = id
+  if (id === 'main') {
+    infoData = { main: true }
+    drawInfo()
+    if (state === 'idle' && !walkTimer) { show('greeting'); setTimeout(() => { if (state === 'idle' && !walkTimer) show('idle') }, 1800) }
+  } else refreshInfo()
+})
+setInterval(() => { if (infoId) refreshInfo() }, 2000)
+setInterval(() => { if (infoId && infoData) drawInfo() }, 1000)
+
+// ---- Live info: speech bubble, task cells, usage, weather, effects, compact mode ----
+let meta = { action: '', tasks: null, busySince: 0, helpers: 0 }
+const bubble = document.getElementById('bubble')
+const bubbleText = document.getElementById('bt')
+const positionBubble = ms => {
+  const cx = x * K + 64
+  const onLeft = cx > 159
+  const avail = (onLeft ? cx : 318 - cx) - 54
+  bubble.style.maxWidth = `${Math.max(90, Math.min(250, avail))}px`
+  const w = bubble.offsetWidth
+  const left = onLeft ? Math.max(12, cx - 42 - w) : Math.min(318 - w - 12, cx + 42)
+  bubble.style.transition = `opacity 0.2s, left ${ms || 0}ms linear`
+  bubble.style.left = `${left}px`
+  bubble.classList.toggle('l', onLeft)
+  bubble.classList.toggle('r', !onLeft)
+}
+let quip = '', chatter = true
+const renderBubble = () => {
+  const txt = meta.action || quip
+  if (!txt) { bubble.classList.remove('on'); return }
+  bubbleText.textContent = txt
+  bubble.classList.add('on')
+  positionBubble(0)
+}
+
+const tasksEl = document.getElementById('tasks')
+const renderTasks = () => {
+  const t = meta.tasks
+  if (!t || !t.total) { tasksEl.hidden = true; return }
+  const cells = Math.min(t.total, 10)
+  const filled = Math.round((t.done / t.total) * cells)
+  let html = ''
+  for (let k = 0; k < cells; k++) html += `<i class="cell${k < filled ? ' done' : k === filled && t.done < t.total ? ' cur' : ''}"></i>`
+  tasksEl.innerHTML = `<span class="cells">${html}</span><span>${t.done}/${t.total}</span>`
+  tasksEl.hidden = false
+}
+
+const usageEl = document.getElementById('usage')
+let usage = null
+const fmtReset = ms => {
+  const m = Math.max(0, Math.round(ms / 60000))
+  if (m < 60) return `${m}m`
+  const hrs = Math.floor(m / 60)
+  return hrs < 24 ? `${hrs}h` : `${Math.floor(hrs / 24)}d`
+}
+const usageSeg = (name, w) => {
+  if (!w) return ''
+  const live = w.at > Date.now()
+  const pct = live ? w.pct : 0
+  const cls = pct >= 90 ? ' hi' : pct >= 70 ? ' mid' : ''
+  return `<span class="u${cls}"><em>${name}</em> <b>${pct}%</b> <i>${live ? fmtReset(w.at - Date.now()) : '-'}</i><s style="width:${Math.min(100, pct)}%"></s></span>`
+}
+const renderUsage = () => {
+  if (!usage || (!usage.five && !usage.seven)) { usageEl.hidden = true; return }
+  usageEl.innerHTML = usageSeg('5h', usage.five) + usageSeg('7d', usage.seven)
+  usageEl.hidden = false
+}
+window.pet.onUsage(u => { usage = u; renderUsage() })
+usageEl.style.cssText += ';-webkit-app-region:no-drag;cursor:pointer'
+usageEl.addEventListener('click', () => {
+  if (!usage) return
+  const f = w => (w ? new Date(w.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '-')
+  const lab = document.getElementById('label'), old = lab.textContent
+  lab.textContent = `Resets 5h ${f(usage.five)} / 7d ${f(usage.seven)}`
+  setTimeout(() => { if (lab.textContent.startsWith('Resets')) lab.textContent = old }, 5000)
+})
+setInterval(renderUsage, 30000)
+
+// Weather: the sky is tinted by backdrop(); rain, snow, fog, lightning and fireflies are animated overlays.
+let wxSig = ''
+const wxEl = document.getElementById('wx')
+const isNight = () => { const hr = hourNow(); return hr >= 20.5 || hr < 5.5 }
+const rnd = (a, b) => a + Math.random() * (b - a)
+const buildWx = () => {
+  const night = isNight()
+  const sig = wxKind + (night ? 'n' : 'd')
+  if (sig === wxSig) return
+  wxSig = sig
+  const out = []
+  const drops = (cls, n, dur) => { for (let k = 0; k < n; k++) out.push(`<i class="${cls}" style="left:${rnd(0, 330).toFixed(0)}px;animation-duration:${rnd(dur, dur * 1.5).toFixed(2)}s;animation-delay:-${rnd(0, 3).toFixed(2)}s"></i>`) }
+  if (wxKind === 'rain') drops('r', 28, 0.55)
+  if (wxKind === 'storm') { drops('r', 40, 0.45); out.push('<div class="flash"></div>') }
+  if (wxKind === 'snow') drops('s', 24, 3.2)
+  if (wxKind === 'fog') for (let k = 0; k < 3; k++) out.push(`<div class="fog" style="top:${58 + k * 14}px;animation-duration:${60 + k * 25}s;animation-delay:-${k * 17}s"></div>`)
+  if (night && (wxKind === 'clear' || wxKind === 'partly')) for (let k = 0; k < 8; k++) out.push(`<i class="f" style="left:${rnd(10, 300).toFixed(0)}px;top:${rnd(72, 100).toFixed(0)}px;animation-duration:${rnd(2.5, 5).toFixed(1)}s;animation-delay:-${rnd(0, 4).toFixed(1)}s"></i>`)
+  wxEl.innerHTML = out.join('')
+}
+const setWeather = kind => { wxKind = kind || 'clear'; drawBackdrop(); buildWx() }
+window.pet.onWeather(setWeather)
+setInterval(() => { drawBackdrop(); buildWx() }, 60000)
+
+// Shimmer on "done", gentle pulse while Claude needs you.
+const cardEl = document.querySelector('.card')
+const sceneEl = document.getElementById('scene')
+let fxTimer = 0
+const fx = s => {
+  cardEl.classList.toggle('glow', s === 'waiting-for-you')
+  if (s !== 'done') return
+  cardEl.classList.remove('shimmer')
+  void cardEl.offsetWidth
+  cardEl.classList.add('shimmer')
+  const sp = []
+  for (let k = 0; k < 3; k++) {
+    const e = document.createElement('div')
+    e.className = 'sp'
+    e.style.left = `${Math.round(x * K + rnd(0, 128))}px`
+    e.style.top = `${Math.round(rnd(20, 60))}px`
+    e.style.animationDelay = `${(k * 0.3).toFixed(2)}s`
+    sceneEl.appendChild(e)
+    sp.push(e)
+  }
+  clearTimeout(fxTimer)
+  fxTimer = setTimeout(() => { sp.forEach(e => e.remove()); cardEl.classList.remove('shimmer') }, 2200)
+}
+
+window.pet.onPrefs(p => { document.body.classList.toggle('compact', !!p.compact); chatter = p.chatter !== false })
+const QUIPS = ['*stretches*', 'Ready when you are', 'Nice day for coding', 'Hmm...', 'Any bugs today?', 'Snack break?', 'Still here!', 'Tests pass? Probably.']
+setInterval(() => {
+  if (!chatter || state !== 'idle' || walkTimer || meta.action || quip || Math.random() > 0.5) return
+  quip = QUIPS[Math.floor(Math.random() * QUIPS.length)]
+  renderBubble()
+  setTimeout(() => { quip = ''; renderBubble() }, 4000)
+}, 60000)
+
+const GAGS = [['coffee', 'Coffee. Always coffee.', 4.3], ['deploy', 'Deploying to prod...', 4.6], ['dance', '*ships it*', 4.7], ['buffering', 'Buffering...', 5], ['hallucinate', 'Totally real. Trust me.', 3.8], ['tokens', 'Counting tokens...', 5.1], ['context', 'Context window: feeling full', 3.7], ['prompt', 'Thinking really hard...', 4], ['robot', 'Hello, fellow AI', 5.1], ['nap', 'Fine-tuning myself...', 4.8]]
+let lastGag = -1
+const playGag = () => {
+  let i; do { i = Math.floor(Math.random() * GAGS.length) } while (i === lastGag)
+  lastGag = i
+  lastWalk = Date.now()
+  const [g, say, secs] = GAGS[i], ms = Math.round(secs * 1000) + 200
+  clearTimeout(walkTimer)
+  show('gag-' + g)
+  label.textContent = ''
+  quip = say; renderBubble()
+  walkTimer = setTimeout(() => { quip = ''; renderBubble(); settle() }, ms)
+}
+setInterval(() => {
+  if (!chatter || state !== 'idle' || helperEls.size || walkTimer || meta.action || quip || document.body.classList.contains('compact') || Math.random() > 0.5) return
+  playGag()
+}, 12000)
+window.gag = playGag
+
+const PCOLS = ['#d97757', '#6fb1e8', '#7bc47f', '#e0b04c', '#c08be0', '#e87fa6']
+const projColor = n => { let h = 0; for (const ch of n || '') h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PCOLS[h % PCOLS.length] }
+window.pet.onMeta(m => {
+  meta = m
+  const mu = document.getElementById('multi'), many = (m.sessions || []).length > 1
+  mu.hidden = !many
+  document.getElementById('project').style.display = many ? 'none' : ''
+  mu.replaceChildren(...(m.sessions || []).map(s => { const e = document.createElement('span'); e.className = s.st; e.style.color = projColor(s.name); e.onclick = () => window.pet.focusSession(s.id); e.append(document.createElement('i'), s.name); return e }))
+  renderBubble()
+  renderTasks()
+  if (infoId === 'main') drawInfo()
+})
+
+setInterval(() => {
+  if (state !== 'idle' || walkTimer || quip || meta.action || Date.now() - lastWalk < WANDER_MS) return
+  let to = Math.round(MIN_X + Math.random() * (MAX_X - MIN_X))
+  if (Math.abs(to - x) < 45) to = x > (MIN_X + MAX_X) / 2 ? MIN_X : MAX_X
+  walkTo(to)
+}, 1000)
+
+place(CENTER_X, 0)
+</script>
+</body>
+</html>

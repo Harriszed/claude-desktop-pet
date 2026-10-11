@@ -1,0 +1,28 @@
+{
+  "name": "claude-desktop-pet",
+  "version": "1.0.0",
+  "private": false,
+  "description": "A desktop Claude mascot that reacts to every Claude Code session.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "install-hooks": "node install-hooks.js",
+    "uninstall-hooks": "node install-hooks.js --remove"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "license": "MIT",
+  "author": "Harriszed",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Harriszed/claude-desktop-pet.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "desktop-pet",
+    "electron",
+    "pixel-art"
+  ]
+}
