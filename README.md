@@ -10,6 +10,11 @@
 </p>
 
 <p align="center">
+  <a href="docs/promo.mp4"><img src="docs/promo-thumb.png" width="600" alt="Watch the promo video"></a><br>
+  <sub>Watch the 27-second promo</sub>
+</p>
+
+<p align="center">
   <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
   <img alt="Electron" src="https://img.shields.io/badge/built%20with-Electron-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
   <img alt="Unofficial" src="https://img.shields.io/badge/unofficial-fan%20project-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
