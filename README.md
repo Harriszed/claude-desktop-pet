@@ -84,6 +84,15 @@ Restart any open Claude Code sessions so they pick up the hooks. Right-click the
 
 To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 
+## Updating
+
+The pet checks for new versions once a day and tells you when one is out. Or use **Check for updates** in the tray menu. To update, run this in the project folder, then relaunch:
+
+```bash
+git pull
+npm install
+```
+
 ## Tray menu
 
 | Option | What it does |
@@ -95,6 +104,7 @@ To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 | Weather effects | Rain, snow and fog from your local weather |
 | Hide in fullscreen apps | Gets out of the way of games and videos |
 | Snap to corner | Move to any screen corner |
+| Check for updates | See if a newer version is out (also checked once a day) |
 | Start with Windows | Launch at login |
 | Play a random gag | See one right now |
 | Preview animation / weather | Try any state or weather |

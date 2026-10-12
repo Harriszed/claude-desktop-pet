@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+- **Check for updates** in the tray menu, plus an automatic daily check that tells you when a new version is out.
+
 ## 1.1.0
 
 ### Added

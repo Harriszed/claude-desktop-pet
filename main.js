@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain } = require('electron')
+const { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, dialog, shell } = require('electron')
 const http = require('http')
 const path = require('path')
 const os = require('os')
@@ -435,6 +435,22 @@ const repairStartup = () => {
   // Only migrate an existing enabled entry; preserve the user's opt-out.
   if (!startsWithWindows() && legacy.openAtLogin && legacy.launchItems.some(item => item.enabled)) setStartup(true)
 }
+const REPO = 'Harriszed/claude-desktop-pet'
+const verNum = v => String(v).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0)
+const isNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) } return false }
+const checkForUpdates = async manual => {
+  try {
+    const tags = await (await fetch(`https://api.github.com/repos/${REPO}/tags`, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'claude-desktop-pet' } })).json()
+    const latest = tags.map(t => t.name).filter(n => /^v?\d+\.\d+\.\d+$/.test(n)).sort((a, b) => (isNewer(a, b) ? -1 : 1))[0]
+    saveSettings({ updateCheckedAt: Date.now() })
+    if (latest && isNewer(latest, app.getVersion())) {
+      const r = await dialog.showMessageBox({ type: 'info', title: 'Claude Desktop Pet', message: `Version ${latest.replace(/^v/, '')} is available`, detail: `You have ${app.getVersion()}.${CRLF}${CRLF}To update, open a terminal in the pet's folder and run:${CRLF}git pull${CRLF}npm install${CRLF}${CRLF}Then quit and relaunch the pet.`, buttons: ["See what's new", 'Later'], defaultId: 0, cancelId: 1 })
+      if (r.response === 0) shell.openExternal(`https://github.com/${REPO}/blob/main/CHANGELOG.md`)
+    } else if (manual) dialog.showMessageBox({ type: 'info', title: 'Claude Desktop Pet', message: `You're up to date (${app.getVersion()})` })
+  } catch {
+    if (manual) dialog.showMessageBox({ type: 'warning', title: 'Claude Desktop Pet', message: "Couldn't check for updates", detail: 'Check your internet connection and try again.' })
+  }
+}
 const toggle = () => { userHidden = win.isVisible(); syncVisible() }
 
 const snap = corner => {
@@ -455,6 +471,7 @@ const buildMenu = () => Menu.buildFromTemplate([
   { label: 'Always on top', type: 'checkbox', checked: loadSettings().alwaysOnTop !== false, click: item => { saveSettings({ alwaysOnTop: item.checked }); applyOnTop() } },
   { label: 'Hide in fullscreen apps', type: 'checkbox', checked: loadSettings().hideFullscreen !== false, click: item => { saveSettings({ hideFullscreen: item.checked }); if (item.checked) startFsWatch(); else stopFsWatch() } },
   { label: 'Snap to corner', submenu: [['Top left', 'top-left'], ['Top right', 'top-right'], ['Bottom left', 'bottom-left'], ['Bottom right', 'bottom-right']].map(([label, c]) => ({ label, click: () => snap(c) })) },
+  { label: 'Check for updates', click: () => checkForUpdates(true) },
   { label: 'Start with Windows', type: 'checkbox', checked: startsWithWindows(), click: item => setStartup(item.checked) },
   { label: 'Reset position', click: () => { const [x, bottom] = cornerPos(); const h = win.getBounds().height; win.setBounds({ x, y: bottom - h, width: px(WIN_W), height: h }); savePos() } },
   { label: 'Play a random gag', click: () => win.webContents.executeJavaScript('window.gag && window.gag()').catch(() => {}) },
@@ -471,6 +488,7 @@ app.whenReady().then(() => {
   tray.setToolTip('Claude Desktop Pet')
   tray.on('click', toggle)
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()))
+  if (Date.now() - (loadSettings().updateCheckedAt || 0) > 86400000) setTimeout(() => checkForUpdates(false), 15000)
   if (!loadSettings().startupSet) { setStartup(true); saveSettings({ startupSet: true }) }
   else repairStartup()
 
