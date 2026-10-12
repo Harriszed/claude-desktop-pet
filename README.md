@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/promo.mp4"><img src="docs/promo-thumb.png" width="600" alt="Watch the promo video"></a><br>
-  <sub>Watch the 27-second promo</sub>
+  <img src="docs/promo.gif" width="640" alt="Claude Desktop Pet promo"><br>
+  <sub><a href="docs/promo.mp4">Watch in full quality</a></sub>
 </p>
 
 <p align="center">
