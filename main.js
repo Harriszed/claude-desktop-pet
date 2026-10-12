@@ -409,8 +409,15 @@ const startFsWatch = () => {
 }
 const stopFsWatch = () => { if (fsProc) fsProc.kill(); fsProc = null; fsHidden = false; syncVisible() }
 
-const startsWithWindows = () => app.getLoginItemSettings({ path: process.execPath, args: [__dirname] }).openAtLogin
-const setStartup = on => app.setLoginItemSettings({ openAtLogin: on, path: process.execPath, args: [__dirname] })
+// Electron 33 writes these directly to the Windows Run command line.
+const startupOptions = { path: `"${process.execPath}"`, args: [`"${__dirname}"`] }
+const startsWithWindows = () => app.getLoginItemSettings(startupOptions).openAtLogin
+const setStartup = on => app.setLoginItemSettings({ openAtLogin: on, ...startupOptions })
+const repairStartup = () => {
+  const legacy = app.getLoginItemSettings({ path: process.execPath, args: [__dirname] })
+  // Only migrate an existing enabled entry; preserve the user's opt-out.
+  if (!startsWithWindows() && legacy.openAtLogin && legacy.launchItems.some(item => item.enabled)) setStartup(true)
+}
 const toggle = () => { userHidden = win.isVisible(); syncVisible() }
 
 const snap = corner => {
@@ -447,6 +454,7 @@ app.whenReady().then(() => {
   tray.on('click', toggle)
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()))
   if (!loadSettings().startupSet) { setStartup(true); saveSettings({ startupSet: true }) }
+  else repairStartup()
 
   http.createServer((req, res) => {
     if (req.method !== 'POST' || (req.url !== '/event' && req.url !== '/usage')) { res.writeHead(404).end(); return }
