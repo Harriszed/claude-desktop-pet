@@ -14,6 +14,8 @@ Install your companion without Node.js or a terminal, then make it your own from
 
 Open the app, choose **Settings → Connect Claude Code**, and restart your Claude Code sessions. Your existing hooks and custom status line are preserved.
 
+![Connect Claude Code from Settings](https://raw.githubusercontent.com/Harriszed/claude-desktop-pet/main/docs/setup.gif)
+
 ## What’s new
 
 - **One place for preferences.** Size, compact mode, always on top, fullscreen hiding, weather, chatter, startup and sound now live in Settings. Open it from the tray or by right-clicking the pet.

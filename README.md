@@ -79,6 +79,8 @@ Turn them off with **Idle chatter** in Settings, or trigger one with **Play a ra
 
 **No Node.js or Git needed for these downloads.** Open **Settings > Connect Claude Code**, then restart your open Claude Code sessions. The connection backs up `~/.claude/settings.json`, preserves other hooks and keeps your existing status line.
 
+<p align="center"><img src="docs/setup.gif" width="420" alt="Setup: click Connect Claude Code, then restart your Claude Code sessions"></p>
+
 These are unsigned community builds. Windows may show a SmartScreen prompt. macOS may require **System Settings > Privacy & Security ? Open Anyway** after your first launch attempt; managed Macs may block unsigned apps. Check that your download came from this repository. Code signing and notarisation require maintainer certificates.
 
 Right-click the pet or its tray/menu-bar icon to open **Settings**. Enable **Start at login** there if you want it ready whenever you sign in. On Linux, some desktops need a tray extension; Settings is also available by right-clicking the pet.
