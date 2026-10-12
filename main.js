@@ -354,14 +354,21 @@ const createWindow = () => {
   win = new BrowserWindow({
     width: WIN_W, height: h, x: saved.x ?? cx, y: bottom - h,
     frame: false, transparent: true, resizable: false, maximizable: false, minimizable: false, skipTaskbar: true,
-    alwaysOnTop: true, hasShadow: false, show: false,
+    alwaysOnTop: loadSettings().alwaysOnTop !== false, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
   })
-  win.setAlwaysOnTop(true, 'screen-saver')
+  applyOnTop()
+  setInterval(() => { if (loadSettings().alwaysOnTop !== false && win && !win.isDestroyed() && win.isVisible()) win.moveTop() }, 3000)
   win.loadFile(path.join(__dirname, 'index.html'), process.env.PET_HOUR ? { query: { hour: process.env.PET_HOUR } } : undefined)
   win.once('ready-to-show', () => win.showInactive())
   win.on('moved', savePos)
   win.webContents.on('did-finish-load', pushAll)
+}
+
+const applyOnTop = () => {
+  if (!win || win.isDestroyed()) return
+  if (loadSettings().alwaysOnTop !== false) { win.setAlwaysOnTop(true, 'screen-saver'); win.moveTop() }
+  else win.setAlwaysOnTop(false)
 }
 
 const FS_SCRIPT = [
@@ -435,6 +442,7 @@ const buildMenu = () => Menu.buildFromTemplate([
   { label: 'Compact mode', type: 'checkbox', checked: compact, click: item => { compact = item.checked; saveSettings({ compact }); applySize(); win.webContents.send('prefs', { compact, chatter: !loadSettings().chatterOff }); savePos() } },
   { label: 'Idle chatter', type: 'checkbox', checked: !loadSettings().chatterOff, click: item => { saveSettings({ chatterOff: !item.checked }); win.webContents.send('prefs', { compact, chatter: item.checked }) } },
   { label: 'Weather effects', type: 'checkbox', checked: !loadSettings().weatherOff, click: item => { saveSettings({ weatherOff: !item.checked }); sendWeather() } },
+  { label: 'Always on top', type: 'checkbox', checked: loadSettings().alwaysOnTop !== false, click: item => { saveSettings({ alwaysOnTop: item.checked }); applyOnTop() } },
   { label: 'Hide in fullscreen apps', type: 'checkbox', checked: loadSettings().hideFullscreen !== false, click: item => { saveSettings({ hideFullscreen: item.checked }); if (item.checked) startFsWatch(); else stopFsWatch() } },
   { label: 'Snap to corner', submenu: [['Top left', 'top-left'], ['Top right', 'top-right'], ['Bottom left', 'bottom-left'], ['Bottom right', 'bottom-right']].map(([label, c]) => ({ label, click: () => snap(c) })) },
   { label: 'Start with Windows', type: 'checkbox', checked: startsWithWindows(), click: item => setStartup(item.checked) },
