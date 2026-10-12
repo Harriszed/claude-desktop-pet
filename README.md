@@ -122,6 +122,10 @@ You can also drag the card anywhere, click the character for details, and click 
 
 Add your own gag by dropping a `gag-name.svg` in `assets/` and adding a line to the `GAGS` list in `index.html`.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
+
 ## Credits and licence
 
 This is an unofficial fan project. It is not made by or affiliated with Anthropic. The Claude character belongs to Anthropic.
