@@ -229,14 +229,16 @@ let expanded = false
 let shrinkTimer = null
 let programmatic = false
 let compact = false
+let SC = 1
+const px = n => Math.round(n * SC)
 const targetH = () => (compact ? COMPACT_H : WIN_H + (expanded ? UG_H : 0))
 const applySize = () => {
   if (!win || win.isDestroyed()) return
   const b = win.getBounds()
-  const h = targetH()
-  if (b.height === h) return
+  const h = px(targetH())
+  if (b.height === h && b.width === px(WIN_W)) return
   programmatic = true
-  win.setBounds({ x: b.x, y: b.y + b.height - h, width: WIN_W, height: h })
+  win.setBounds({ x: b.x, y: b.y + b.height - h, width: px(WIN_W), height: h })
   setTimeout(() => { programmatic = false }, 300)
 }
 const resizeFor = open => {
@@ -313,6 +315,13 @@ ipcMain.handle('focus-session', (_, id) => {
   ].join(CRLF)
   spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true })
 })
+ipcMain.handle('toggle-size', () => {
+  SC = SC === 1 ? 0.65 : 1
+  saveSettings({ scale: SC })
+  win.webContents.setZoomFactor(SC)
+  applySize()
+  savePos()
+})
 ipcMain.handle('helper-info', (_, id) => helperInfo(id))
 
 const settingsFile = () => path.join(app.getPath('userData'), 'window.json')
@@ -322,7 +331,7 @@ const savePos = () => { if (win && !programmatic) { const b = win.getBounds(); s
 
 const cornerPos = () => {
   const a = screen.getPrimaryDisplay().workArea
-  return [a.x + a.width - WIN_W - 16, a.y + a.height - 16]
+  return [a.x + a.width - px(WIN_W) - 16, a.y + a.height - 16]
 }
 
 let userHidden = false
@@ -349,10 +358,11 @@ const createWindow = () => {
   compact = !!saved.compact
   usage = saved.usage || null
   const [cx, cbottom] = cornerPos()
-  const h = targetH()
+  SC = loadSettings().scale || 1
+  const h = px(targetH())
   const bottom = saved.bottom ?? (saved.y !== undefined ? saved.y + WIN_H : cbottom)
   win = new BrowserWindow({
-    width: WIN_W, height: h, x: saved.x ?? cx, y: bottom - h,
+    width: px(WIN_W), height: h, x: saved.x ?? cx, y: bottom - h,
     frame: false, transparent: true, resizable: false, maximizable: false, minimizable: false, skipTaskbar: true,
     alwaysOnTop: loadSettings().alwaysOnTop !== false, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
@@ -362,7 +372,7 @@ const createWindow = () => {
   win.loadFile(path.join(__dirname, 'index.html'), process.env.PET_HOUR ? { query: { hour: process.env.PET_HOUR } } : undefined)
   win.once('ready-to-show', () => win.showInactive())
   win.on('moved', savePos)
-  win.webContents.on('did-finish-load', pushAll)
+  win.webContents.on('did-finish-load', () => { win.webContents.setZoomFactor(SC); pushAll() })
 }
 
 const applyOnTop = () => {
@@ -446,7 +456,7 @@ const buildMenu = () => Menu.buildFromTemplate([
   { label: 'Hide in fullscreen apps', type: 'checkbox', checked: loadSettings().hideFullscreen !== false, click: item => { saveSettings({ hideFullscreen: item.checked }); if (item.checked) startFsWatch(); else stopFsWatch() } },
   { label: 'Snap to corner', submenu: [['Top left', 'top-left'], ['Top right', 'top-right'], ['Bottom left', 'bottom-left'], ['Bottom right', 'bottom-right']].map(([label, c]) => ({ label, click: () => snap(c) })) },
   { label: 'Start with Windows', type: 'checkbox', checked: startsWithWindows(), click: item => setStartup(item.checked) },
-  { label: 'Reset position', click: () => { const [x, bottom] = cornerPos(); const h = win.getBounds().height; win.setBounds({ x, y: bottom - h, width: WIN_W, height: h }); savePos() } },
+  { label: 'Reset position', click: () => { const [x, bottom] = cornerPos(); const h = win.getBounds().height; win.setBounds({ x, y: bottom - h, width: px(WIN_W), height: h }); savePos() } },
   { label: 'Play a random gag', click: () => win.webContents.executeJavaScript('window.gag && window.gag()').catch(() => {}) },
   { label: 'Preview animation', submenu: [{ label: 'Live (auto)', click: () => { preview = null } }, ...PREVIEWS.map(s => ({ label: s, click: () => { preview = s } }))] },
   { label: 'Preview weather', submenu: [{ label: 'Live (local)', click: () => { wxPreview = null; sendWeather() } }, ...WEATHER.map(w => ({ label: w, click: () => { wxPreview = w; sendWeather() } }))] },
