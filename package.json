@@ -1,6 +1,6 @@
 {
   "name": "claude-desktop-pet",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": false,
   "description": "A desktop Claude mascot that reacts to every Claude Code session.",
   "main": "main.js",

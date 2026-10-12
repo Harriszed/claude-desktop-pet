@@ -76,12 +76,11 @@ git clone https://github.com/Harriszed/claude-desktop-pet.git
 cd claude-desktop-pet
 npm install
 npm run install-hooks   # adds the hooks to ~/.claude/settings.json (a backup is saved first)
-npm start
 ```
 
-Restart any open Claude Code sessions so they pick up the hooks. Then right-click the tray icon and tick **Start with Windows** if you want it always there.
+Then double-click **`Start Pet.vbs`** in the folder to launch the pet. No terminal is needed after setup, and you never have to use `npm start` (it's only there for development). Quit it from the tray menu.
 
-**No command window:** after the first setup, double-click `Start Pet.vbs` to launch the pet without a terminal. Quit it from the tray menu.
+Restart any open Claude Code sessions so they pick up the hooks. Right-click the tray icon and tick **Start with Windows** if you want it always there.
 
 To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 
