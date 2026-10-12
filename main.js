@@ -316,7 +316,7 @@ ipcMain.handle('focus-session', (_, id) => {
   spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true })
 })
 ipcMain.handle('toggle-size', () => {
-  SC = SC === 1 ? 0.65 : 1
+  SC = SC > 0.9 ? 0.8 : SC > 0.7 ? 0.6 : 1
   saveSettings({ scale: SC })
   win.webContents.setZoomFactor(SC)
   applySize()

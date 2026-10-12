@@ -100,7 +100,7 @@ To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 | Play a random gag | See one right now |
 | Preview animation / weather | Try any state or weather |
 
-You can also drag the card anywhere, click the character for details, and click the project name in the top-left to switch between full size and small.
+You can also drag the card anywhere, click the character for details, and click the faint arrow in the top-right to cycle between large, medium and small.
 
 <p align="center"><img src="docs/weather.png" alt="Rain and snow"></p>
 
