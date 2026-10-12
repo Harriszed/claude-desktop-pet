@@ -75,7 +75,7 @@ Turn them off with **Idle chatter** in Settings, or trigger one with **Play a ra
 |---|---|---|
 | Windows 10/11 | `Setup-x64.exe` | Run the installer, then launch from the desktop or Start menu. |
 | macOS, Intel or Apple Silicon | `mac-universal.dmg` | Drag the pet into Applications, then open it. |
-| Linux x64 | `linux-x64.AppImage` or `.deb` | Make the AppImage executable and run it, or install the Debian package. |
+| Linux x64 | `linux-x86_64.AppImage` or `linux-amd64.deb` | Make the AppImage executable and run it, or install the Debian package. |
 
 **No Node.js or Git needed for these downloads.** Open **Settings > Connect Claude Code**, then restart your open Claude Code sessions. The connection backs up `~/.claude/settings.json`, preserves other hooks and keeps your existing status line.
 

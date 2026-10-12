@@ -10,7 +10,7 @@ Install your companion without Node.js or a terminal, then make it your own from
 |---|---|
 | Windows 10/11, x64 | `Claude-Desktop-Pet-1.3.0-Setup-x64.exe` |
 | macOS, Intel or Apple Silicon | `Claude-Desktop-Pet-1.3.0-mac-universal.dmg` |
-| Linux x64 | `Claude-Desktop-Pet-1.3.0-linux-x64.AppImage` or `.deb` |
+| Linux x64 | `Claude-Desktop-Pet-1.3.0-linux-x86_64.AppImage` or `Claude-Desktop-Pet-1.3.0-linux-amd64.deb` |
 
 Open the app, choose **Settings → Connect Claude Code**, and restart your Claude Code sessions. Your existing hooks and custom status line are preserved.
 
