@@ -1,0 +1,69 @@
+name: Build and release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            command: npm run dist:win
+          - os: macos-latest
+            target: mac
+            command: npm run dist:mac
+          - os: ubuntu-22.04
+            target: linux
+            command: npm run dist:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build installer
+        run: ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.target }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest*.yml
+            dist/*.blockmap
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Publish tested installers and notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          test "$TAG" = "v$VERSION"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "Claude Desktop Pet $VERSION" --notes-file docs/RELEASE_NOTES.md
+          gh release upload "$TAG" release-assets/* --clobber
+          gh release edit "$TAG" --draft=false --latest --title "Claude Desktop Pet $VERSION" --notes-file docs/RELEASE_NOTES.md

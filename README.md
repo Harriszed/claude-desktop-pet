@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img alt="Windows" src="https://img.shields.io/badge/platform-Windows-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
+  <img alt="Windows, macOS and Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
   <img alt="Electron" src="https://img.shields.io/badge/built%20with-Electron-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
   <img alt="Unofficial" src="https://img.shields.io/badge/unofficial-fan%20project-1f1d1b?style=flat-square&labelColor=1f1d1b&color=DD775B">
 </p>
@@ -65,67 +65,117 @@ When Claude is idle, it occasionally does an AI-flavoured bit. Ten so far:
 </tr>
 </table>
 
-Turn them off with **Idle chatter** in the tray menu, or trigger one with **Play a random gag**.
+Turn them off with **Idle chatter** in Settings, or trigger one with **Play a random gag**.
 
 ## Install
 
-You need [Node.js](https://nodejs.org) 18+ and Claude Code on **Windows**.
+[**Download the latest release**](https://github.com/Harriszed/claude-desktop-pet/releases/latest)
+
+| Platform | Download | Setup |
+|---|---|---|
+| Windows 10/11 | `Setup-x64.exe` | Run the installer, then launch from the desktop or Start menu. |
+| macOS, Intel or Apple Silicon | `mac-universal.dmg` | Drag the pet into Applications, then open it. |
+| Linux x64 | `linux-x64.AppImage` or `.deb` | Make the AppImage executable and run it, or install the Debian package. |
+
+**No Node.js or Git needed for these downloads.** Open **Settings > Connect Claude Code**, then restart your open Claude Code sessions. The connection backs up `~/.claude/settings.json`, preserves other hooks and keeps your existing status line.
+
+These are unsigned community builds. Windows may show a SmartScreen prompt. macOS may require **System Settings > Privacy & Security ? Open Anyway** after your first launch attempt; managed Macs may block unsigned apps. Check that your download came from this repository. Code signing and notarisation require maintainer certificates.
+
+Right-click the pet or its tray/menu-bar icon to open **Settings**. Enable **Start at login** there if you want it ready whenever you sign in. On Linux, some desktops need a tray extension; Settings is also available by right-clicking the pet.
+
+### Platform notes
+
+- **macOS:** fullscreen detection and clicking session chips may need Accessibility and Automation access in System Settings. Relaunch after granting access. Fullscreen detection uses native fullscreen state.
+- **Linux X11:** fullscreen detection uses `xprop`, and clicking session chips uses `wmctrl`. Install these with your distribution's package manager if needed (for example, `sudo apt install x11-utils wmctrl`).
+- **Linux Wayland:** window focus and fullscreen detection are unavailable because Wayland restricts access to other apps. Window stacking depends on your compositor.
+- **Linux AppImage:** keep it in a permanent folder before enabling Start at login. Some distributions require FUSE compatibility packages to run AppImages.
+- **Usage readout:** the credential-file method depends on how Claude Code stores its login. Where those credentials aren't exposed (for example some macOS Keychain logins), the hook status line can supply usage instead. A pre-existing status line is always preserved.
+
+### Run from source
+
+For development, use [Node.js](https://nodejs.org) **22.12+**, Git and Claude Code:
 
 ```bash
 git clone https://github.com/Harriszed/claude-desktop-pet.git
 cd claude-desktop-pet
 npm install
-npm run install-hooks   # adds the hooks to ~/.claude/settings.json (a backup is saved first)
+npm run install-hooks
+npm start
 ```
 
-Then double-click **`Start Pet.vbs`** in the folder to launch the pet. No terminal is needed after setup, and you never have to use `npm start` (it's only there for development). Quit it from the tray menu.
+On Windows, you can double-click **`Start Pet.vbs`** after setup to launch without a terminal. On macOS and Linux, use `npm start`. Restart open Claude Code sessions after connecting. Hooks can also be connected from Settings.
 
-Restart any open Claude Code sessions so they pick up the hooks. Right-click the tray icon and tick **Start with Windows** if you want it always there.
+### Remove
 
-To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
+First choose **Settings > Disconnect**, then restart open Claude Code sessions and quit the pet. Turn off **Start at login** before uninstalling. Source installs can use `npm run uninstall-hooks`. The Windows uninstaller preserves your preferences for a future reinstall.
 
 ## Updating
 
-The pet checks for new versions once a day and tells you when one is out. Or use **Check for updates** in the tray menu. To update, run this in the project folder, then relaunch:
+The pet checks once a day. **Check for updates** is also in Settings and the tray menu.
+
+- **Windows installer and Linux AppImage:** download an update inside the app, then choose **Restart and install** when ready. Updates are never downloaded or installed without your choice.
+- **macOS and Linux Debian package:** the update check opens the latest release. Replace the app or install the new package. Unsigned macOS apps cannot use the signed-app update mechanism.
+- **Source install:** quit the pet first, run the commands below in the project folder, then relaunch. Quitting first lets npm replace the Electron runtime on Windows.
 
 ```bash
 git pull
 npm install
 ```
 
-## Tray menu
+Preferences live outside the install folder and survive updates. Moving the app? Use **Settings > Repair connection** to refresh your Claude Code hooks.
 
-| Option | What it does |
+## Settings
+
+| Preference | What it does |
 |---|---|
-| Show / hide | Toggle the pet |
-| Compact | Smaller version, just the character |
-| Always on top | Keep the pet above other windows (on by default) |
-| Idle chatter | Random quips and gags while idle |
-| Weather effects | Rain, snow and fog from your local weather |
-| Hide in fullscreen apps | Gets out of the way of games and videos |
-| Snap to corner | Move to any screen corner |
-| Check for updates | See if a newer version is out (also checked once a day) |
-| Start with Windows | Launch at login |
-| Play a random gag | See one right now |
-| Preview animation / weather | Try any state or weather |
+| Connect / repair / disconnect | Manage Claude Code hooks without a terminal |
+| Pet size | Large, medium or small |
+| Compact mode | A smaller strip of current activity |
+| Always on top | Keep the pet above other windows |
+| Hide in fullscreen apps | Give supported fullscreen apps the whole screen |
+| Move to a corner | Position the pet on its current screen |
+| Idle chatter | Random quips and gags |
+| Weather effects | Local rain, snow and fog |
+| Completion chime | Optional quiet chime when Claude finishes; off by default |
+| Chime volume / Test chime | Adjust and preview the sound |
+| Start at login | Launch when you sign in |
+| Check for updates | Find and install available updates |
 
-You can also drag the card anywhere, click the character for details, and click the faint arrow in the top-right to cycle between large, medium and small.
+Changes save immediately. The tray keeps quick actions for Show / hide, Settings, corner placement, updates, previews and Quit. You can still drag the card anywhere, click the character for details, and click the faint arrow to cycle sizes.
 
+<p align="center"><img src="docs/settings.png" width="460" alt="Settings window with pet size, visibility, personality and startup preferences"></p>
 <p align="center"><img src="docs/weather.png" alt="Rain and snow"></p>
+
+## Building and releasing
+
+```bash
+npm test
+npm run test:smoke       # live Electron checks on Windows, isolated from your preferences
+npm run dist:win         # Windows installer
+npm run dist:mac         # universal DMG + ZIP; run on macOS
+npm run dist:linux       # AppImage + Debian package; run on Linux
+```
+
+Builds are written to `dist/`. See [the release guide](docs/RELEASING.md) for GitHub publishing, signing and the build workflow. A version tag builds all three platforms and publishes a Release only after all builds and unit tests succeed. The README's screenshots and short GIF above show the pet in action.
 
 ## Privacy and how it works
 
 - Claude Code hooks send small events (state, tool name, file name) to a local server on `127.0.0.1:47821`. Nothing leaves your machine for that.
 - **Usage readout:** to show your 5h / 7d usage, the app reads your Claude login token from `~/.claude/.credentials.json` and asks Anthropic's usage endpoint for your limits every couple of minutes. The token is not stored or sent anywhere else. That endpoint is undocumented and may change or stop working.
 - Weather uses your approximate location from a public weather service.
-- Settings are saved in `%APPDATA%\claude-desktop-pet\window.json`.
+- Settings are saved outside the installation: `%APPDATA%\claude-desktop-pet\window.json` on Windows, `~/Library/Application Support/claude-desktop-pet/window.json` on macOS, and `~/.config/claude-desktop-pet/window.json` on Linux (or your XDG config directory).
+- Release checks contact GitHub. An update is downloaded only after you select it. The completion chime is generated locally; no audio is uploaded or downloaded.
 
 ## Project layout
 
 | File | Purpose |
 |---|---|
 | `main.js` | Window, tray, hook server, usage polling |
-| `index.html` | The whole pet UI and animation logic |
+| `index.html` | Pet UI and animation logic |
+| `settings.html` / `settings.js` | Settings window |
+| `platform.js` | Startup, fullscreen detection and session focus |
+| `updates.js` | Release checks and installer updates |
+| `sounds.js` | Locally generated completion chime |
 | `hook.js` | Tiny script Claude Code runs on each event |
 | `install-hooks.js` | Adds or removes the hooks |
 | `assets/` | Pixel animations (SVG) |

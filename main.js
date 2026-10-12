@@ -4,9 +4,21 @@ const path = require('path')
 const os = require('os')
 const { spawn } = require('child_process')
 const fs = require('fs')
+const platform = require('./platform')
+const { configureHooks, hookCommand, hooksConnected } = require('./hook-settings')
+const { createUpdates, RELEASES } = require('./updates')
+
+// Keep the settings location identical for source and installed copies.
+app.setPath('userData', path.join(app.getPath('appData'), 'claude-desktop-pet'))
+if (process.env.PET_TEST_DATA) app.setPath('userData', process.env.PET_TEST_DATA)
+fs.mkdirSync(app.getPath('userData'), { recursive: true })
+const startup = platform.createStartup(app)
+let platformCaps = { fullscreen: process.platform === 'win32', focus: process.platform === 'win32', note: '' }
+let settingsWin
+let updates
 
 const CRLF = String.fromCharCode(13, 10)
-const PORT = 47821
+const PORT = Number(process.env.PET_TEST_PORT) || 47821
 const WIN_W = 340
 const WIN_H = 176
 const UG_H = 84
@@ -117,7 +129,7 @@ const onEvent = e => {
       s.toolUntil = now + TOOL_HOLD_MS
       if (e.event === 'PostToolUseFailure') { s.errorUntil = now + ERROR_HOLD_MS; s.errText = `Failed: ${e.detail || e.tool}`.slice(0, 70) }
       break
-    case 'Stop': s.busy = false; s.running = 0; s.spawns = 0; s.agents.clear(); s.toolUntil = 0; s.doneUntil = now + DONE_MS; break
+    case 'Stop': if (loadSettings().sound && win && !win.isDestroyed()) win.webContents.send('sound', { volume: loadSettings().soundVolume ?? 35 }); s.busy = false; s.running = 0; s.spawns = 0; s.agents.clear(); s.toolUntil = 0; s.doneUntil = now + DONE_MS; break
     case 'Notification': s.waiting = true; break
     case 'PreCompact': s.compactingAt = now; break
   }
@@ -210,6 +222,7 @@ let wxPreview = process.env.PET_WX || null
 const getJson = async u => (await fetch(u, { signal: AbortSignal.timeout(8000) })).json()
 const sendWeather = () => { if (win && !win.isDestroyed()) win.webContents.send('weather', loadSettings().weatherOff ? 'clear' : wxPreview || weather) }
 const updateWeather = async () => {
+  if (loadSettings().weatherOff) return
   try {
     let loc = loadSettings().loc
     if (!loc || Date.now() - loc.at > 24 * 3600 * 1000) {
@@ -305,15 +318,21 @@ const helperInfo = id => {
   }
   return null
 }
-ipcMain.handle('focus-session', (_, id) => {
+ipcMain.handle('focus-session', async (_, id) => {
   const s = sessions.get(id)
-  if (!s || !s.ppid || process.platform !== 'win32') return
+  if (!s || !s.ppid) return
+  if (process.platform !== 'win32') {
+    if (!platformCaps.focus) return
+    try { await platform.focusSession(Number(s.ppid)) }
+    catch { if (settingsWin) settingsWin.focus() }
+    return
+  }
   const ps = [
     'Add-Type @"', 'using System; using System.Runtime.InteropServices;', 'public class FG { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c); [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h); }', '"@',
     `$p = ${Number(s.ppid)}`,
     'for ($i = 0; $i -lt 12 -and $p; $i++) { $pr = Get-Process -Id $p -ErrorAction SilentlyContinue; if ($pr -and $pr.MainWindowHandle -ne 0) { if ([FG]::IsIconic($pr.MainWindowHandle)) { [void][FG]::ShowWindow($pr.MainWindowHandle, 9) }; [void][FG]::SetForegroundWindow($pr.MainWindowHandle); break }; $q = Get-CimInstance Win32_Process -Filter "ProcessId=$p" -ErrorAction SilentlyContinue; $p = if ($q) { $q.ParentProcessId } else { 0 } }',
   ].join(CRLF)
-  spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true })
+  spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true }).on('error', () => {})
 })
 ipcMain.handle('toggle-size', () => {
   SC = SC > 0.9 ? 0.8 : SC > 0.7 ? 0.6 : 1
@@ -321,12 +340,17 @@ ipcMain.handle('toggle-size', () => {
   win.webContents.setZoomFactor(SC)
   applySize()
   savePos()
+  notifySettings()
 })
 ipcMain.handle('helper-info', (_, id) => helperInfo(id))
 
 const settingsFile = () => path.join(app.getPath('userData'), 'window.json')
 const loadSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) } catch { return {} } }
-const saveSettings = patch => fs.writeFileSync(settingsFile(), JSON.stringify({ ...loadSettings(), ...patch }))
+const saveSettings = patch => {
+  const file = settingsFile()
+  fs.writeFileSync(file + '.tmp', JSON.stringify({ ...loadSettings(), ...patch }))
+  fs.renameSync(file + '.tmp', file)
+}
 const savePos = () => { if (win && !programmatic) { const b = win.getBounds(); saveSettings({ x: b.x, bottom: b.y + b.height }) } }
 
 const cornerPos = () => {
@@ -357,21 +381,23 @@ const createWindow = () => {
   const saved = loadSettings()
   compact = !!saved.compact
   usage = saved.usage || null
+  SC = [1, 0.8, 0.6].includes(saved.scale) ? saved.scale : 1
   const [cx, cbottom] = cornerPos()
-  SC = loadSettings().scale || 1
   const h = px(targetH())
   const bottom = saved.bottom ?? (saved.y !== undefined ? saved.y + WIN_H : cbottom)
   win = new BrowserWindow({
     width: px(WIN_W), height: h, x: saved.x ?? cx, y: bottom - h,
     frame: false, transparent: true, resizable: false, maximizable: false, minimizable: false, skipTaskbar: true,
     alwaysOnTop: loadSettings().alwaysOnTop !== false, hasShadow: false, show: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, autoplayPolicy: 'no-user-gesture-required' },
   })
+  if (process.platform === 'darwin') win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   applyOnTop()
   setInterval(() => { if (loadSettings().alwaysOnTop !== false && win && !win.isDestroyed() && win.isVisible()) win.moveTop() }, 3000)
   win.loadFile(path.join(__dirname, 'index.html'), process.env.PET_HOUR ? { query: { hour: process.env.PET_HOUR } } : undefined)
   win.once('ready-to-show', () => win.showInactive())
   win.on('moved', savePos)
+  win.webContents.on('context-menu', () => Menu.buildFromTemplate([{ label: 'Settings…', click: openSettings }, { label: 'Show / hide', click: toggle }, { label: 'Quit', click: () => app.quit() }]).popup({ window: win }))
   win.webContents.on('did-finish-load', () => { win.webContents.setZoomFactor(SC); pushAll() })
 }
 
@@ -402,8 +428,26 @@ const FS_SCRIPT = [
 ].join(CRLF)
 const SHELL_CLASSES = new Set(['Progman', 'WorkerW', 'Shell_TrayWnd', 'Shell_SecondaryTrayWnd'])
 let fsProc = null
+let fsTimer = null
+let fsPolling = false
 const startFsWatch = () => {
-  if (fsProc || process.platform !== 'win32') return
+  if (process.platform !== 'win32') {
+    if (fsTimer || !platformCaps.fullscreen) return
+    fsTimer = setInterval(async () => {
+      if (fsPolling) return
+      fsPolling = true
+      try {
+        const full = await platform.foregroundFullscreen()
+        if (fsTimer && full !== fsHidden) { fsHidden = full; syncVisible() }
+      } catch {
+        stopFsWatch()
+        platformCaps = { ...platformCaps, fullscreen: false, note: 'Fullscreen detection is unavailable. On macOS, enable Accessibility and Automation for the pet in System Settings, then relaunch. On Linux X11, check that xprop is installed.' }
+        notifySettings()
+      } finally { fsPolling = false }
+    }, 1500)
+    return
+  }
+  if (fsProc) return
   const file = path.join(os.tmpdir(), 'claude-desktop-pet-fs.ps1')
   fs.writeFileSync(file, FS_SCRIPT)
   fsProc = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', file], { windowsHide: true })
@@ -422,35 +466,93 @@ const startFsWatch = () => {
     })
     if (full !== fsHidden) { fsHidden = full; syncVisible() }
   })
-  fsProc.on('exit', () => { fsProc = null })
+  fsProc.on('error', () => { fsProc = null; fsHidden = false; syncVisible() })
+  fsProc.on('exit', () => { fsProc = null; fsHidden = false; syncVisible() })
 }
-const stopFsWatch = () => { if (fsProc) fsProc.kill(); fsProc = null; fsHidden = false; syncVisible() }
+const stopFsWatch = () => { if (fsProc) fsProc.kill(); fsProc = null; clearInterval(fsTimer); fsTimer = null; fsHidden = false; syncVisible() }
+const checkForUpdates = manual => updates.check(manual)
 
-// Electron 33 writes these directly to the Windows Run command line.
-const startupOptions = { path: `"${process.execPath}"`, args: [`"${__dirname}"`] }
-const startsWithWindows = () => app.getLoginItemSettings(startupOptions).openAtLogin
-const setStartup = on => app.setLoginItemSettings({ openAtLogin: on, ...startupOptions })
-const repairStartup = () => {
-  const legacy = app.getLoginItemSettings({ path: process.execPath, args: [__dirname] })
-  // Only migrate an existing enabled entry; preserve the user's opt-out.
-  if (!startsWithWindows() && legacy.openAtLogin && legacy.launchItems.some(item => item.enabled)) setStartup(true)
+const claudeSettings = () => process.env.PET_TEST_CLAUDE_SETTINGS || path.join(os.homedir(), '.claude', 'settings.json')
+const legacyHook = path.join(__dirname, 'hook.js')
+const settingsData = () => {
+  const saved = loadSettings()
+  return { version: app.getVersion(), compact, scale: SC, chatter: !saved.chatterOff, weather: !saved.weatherOff,
+    alwaysOnTop: saved.alwaysOnTop !== false, hideFullscreen: saved.hideFullscreen !== false,
+    sound: !!saved.sound, soundVolume: saved.soundVolume ?? 35, startup: startup.enabled(),
+    connected: hooksConnected(claudeSettings(), [legacyHook]), capabilities: platformCaps,
+    update: updates ? updates.status() : { phase: 'idle', message: 'Checks once a day.' } }
 }
-const REPO = 'Harriszed/claude-desktop-pet'
-const verNum = v => String(v).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0)
-const isNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) } return false }
-const checkForUpdates = async manual => {
-  try {
-    const tags = await (await fetch(`https://api.github.com/repos/${REPO}/tags`, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'claude-desktop-pet' } })).json()
-    const latest = tags.map(t => t.name).filter(n => /^v?\d+\.\d+\.\d+$/.test(n)).sort((a, b) => (isNewer(a, b) ? -1 : 1))[0]
-    saveSettings({ updateCheckedAt: Date.now() })
-    if (latest && isNewer(latest, app.getVersion())) {
-      const r = await dialog.showMessageBox({ type: 'info', title: 'Claude Desktop Pet', message: `Version ${latest.replace(/^v/, '')} is available`, detail: `You have ${app.getVersion()}.${CRLF}${CRLF}To update, open a terminal in the pet's folder and run:${CRLF}git pull${CRLF}npm install${CRLF}${CRLF}Then quit and relaunch the pet.`, buttons: ["See what's new", 'Later'], defaultId: 0, cancelId: 1 })
-      if (r.response === 0) shell.openExternal(`https://github.com/${REPO}/blob/main/CHANGELOG.md`)
-    } else if (manual) dialog.showMessageBox({ type: 'info', title: 'Claude Desktop Pet', message: `You're up to date (${app.getVersion()})` })
-  } catch {
-    if (manual) dialog.showMessageBox({ type: 'warning', title: 'Claude Desktop Pet', message: "Couldn't check for updates", detail: 'Check your internet connection and try again.' })
+const notifySettings = () => {
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-changed', settingsData())
+  if (process.platform === 'linux' && tray && updates) tray.setContextMenu(buildMenu())
+}
+const setPreferences = patch => {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('Invalid preferences')
+  const booleans = ['compact', 'alwaysOnTop', 'hideFullscreen', 'chatter', 'weather', 'sound', 'startup']
+  for (const [key, value] of Object.entries(patch)) {
+    if (booleans.includes(key)) { if (typeof value !== 'boolean') throw new Error('Invalid preference value') }
+    else if (key === 'scale') { if (![1, 0.8, 0.6].includes(value)) throw new Error('Invalid pet size') }
+    else if (key === 'soundVolume') { if (!Number.isFinite(value) || value < 0 || value > 100) throw new Error('Invalid volume') }
+    else throw new Error('Unknown preference')
   }
+  if (patch.startup !== undefined) startup.set(patch.startup)
+  const saved = { ...patch }
+  if (patch.chatter !== undefined) { saved.chatterOff = !patch.chatter; delete saved.chatter }
+  if (patch.weather !== undefined) { saved.weatherOff = !patch.weather; delete saved.weather }
+  delete saved.startup
+  saveSettings(saved)
+  if (patch.compact !== undefined) compact = patch.compact
+  if (patch.scale !== undefined) { SC = patch.scale; win.webContents.setZoomFactor(SC) }
+  applySize()
+  savePos()
+  applyOnTop()
+  if (patch.hideFullscreen !== undefined) { if (patch.hideFullscreen) startFsWatch(); else stopFsWatch() }
+  pushAll()
+  if (patch.weather === true) updateWeather()
+  notifySettings()
+  return settingsData()
 }
+const openSettings = () => {
+  if (settingsWin && !settingsWin.isDestroyed()) { if (settingsWin.isMinimized()) settingsWin.restore(); settingsWin.show(); settingsWin.focus(); return }
+  settingsWin = new BrowserWindow({ width: 600, height: 760, minWidth: 420, minHeight: 480,
+    title: 'Claude Desktop Pet - Settings', backgroundColor: '#1f1d1b', autoHideMenuBar: true,
+    icon: path.join(__dirname, 'assets', 'icon.png'), show: false,
+    webPreferences: { preload: path.join(__dirname, 'settings-preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  settingsWin.loadFile(path.join(__dirname, 'settings.html'))
+  settingsWin.once('ready-to-show', () => { settingsWin.show(); settingsWin.focus() })
+  settingsWin.on('closed', () => { settingsWin = null })
+  settingsWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  settingsWin.webContents.on('will-navigate', event => event.preventDefault())
+}
+const updateHooks = remove => {
+  let hook = legacyHook
+  if (app.isPackaged) {
+    const dir = path.join(app.getPath('userData'), 'hooks')
+    fs.mkdirSync(dir, { recursive: true })
+    hook = path.join(dir, 'hook.js')
+    fs.copyFileSync(legacyHook, hook)
+  }
+  // For AppImage, the mount path changes every launch; use the persistent image.
+  const executable = app.isPackaged ? process.env.APPIMAGE || process.execPath : 'node'
+  const options = { executable, hook, packaged: app.isPackaged }
+  const result = configureHooks({ file: claudeSettings(), command: hookCommand(options), statusCommand: hookCommand({ ...options, statusline: true }), remove, legacyPaths: [legacyHook, hook] })
+  saveSettings({ hooksConnected: !remove })
+  notifySettings()
+  return result
+}
+const settingsOnly = handler => (event, ...args) => {
+  if (!settingsWin || event.sender !== settingsWin.webContents) throw new Error('Settings window required')
+  return handler(...args)
+}
+ipcMain.handle('settings-get', settingsOnly(settingsData))
+ipcMain.handle('settings-set', settingsOnly(setPreferences))
+ipcMain.handle('settings-hooks', settingsOnly(remove => { if (typeof remove !== 'boolean') throw new Error('Invalid connection action'); return updateHooks(remove) }))
+ipcMain.handle('settings-update', settingsOnly(() => checkForUpdates(true)))
+ipcMain.handle('settings-install-update', settingsOnly(() => updates.install()))
+ipcMain.handle('settings-test-sound', settingsOnly(() => win.webContents.send('sound', { volume: loadSettings().soundVolume ?? 35 })))
+ipcMain.handle('settings-snap', settingsOnly(corner => { if (!['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(corner)) throw new Error('Invalid corner'); snap(corner) }))
+ipcMain.handle('settings-releases', settingsOnly(() => shell.openExternal(RELEASES)))
+ipcMain.handle('open-settings', () => openSettings())
 const toggle = () => { userHidden = win.isVisible(); syncVisible() }
 
 const snap = corner => {
@@ -465,14 +567,10 @@ const WEATHER = ['clear', 'partly', 'cloudy', 'fog', 'rain', 'snow', 'storm']
 
 const buildMenu = () => Menu.buildFromTemplate([
   { label: 'Show / hide', click: toggle },
-  { label: 'Compact mode', type: 'checkbox', checked: compact, click: item => { compact = item.checked; saveSettings({ compact }); applySize(); win.webContents.send('prefs', { compact, chatter: !loadSettings().chatterOff }); savePos() } },
-  { label: 'Idle chatter', type: 'checkbox', checked: !loadSettings().chatterOff, click: item => { saveSettings({ chatterOff: !item.checked }); win.webContents.send('prefs', { compact, chatter: item.checked }) } },
-  { label: 'Weather effects', type: 'checkbox', checked: !loadSettings().weatherOff, click: item => { saveSettings({ weatherOff: !item.checked }); sendWeather() } },
-  { label: 'Always on top', type: 'checkbox', checked: loadSettings().alwaysOnTop !== false, click: item => { saveSettings({ alwaysOnTop: item.checked }); applyOnTop() } },
-  { label: 'Hide in fullscreen apps', type: 'checkbox', checked: loadSettings().hideFullscreen !== false, click: item => { saveSettings({ hideFullscreen: item.checked }); if (item.checked) startFsWatch(); else stopFsWatch() } },
+  { label: 'Settings...', click: openSettings },
   { label: 'Snap to corner', submenu: [['Top left', 'top-left'], ['Top right', 'top-right'], ['Bottom left', 'bottom-left'], ['Bottom right', 'bottom-right']].map(([label, c]) => ({ label, click: () => snap(c) })) },
   { label: 'Check for updates', click: () => checkForUpdates(true) },
-  { label: 'Start with Windows', type: 'checkbox', checked: startsWithWindows(), click: item => setStartup(item.checked) },
+  ...(updates.status().phase === 'downloaded' ? [{ label: 'Restart and install update', click: () => updates.install() }] : []),
   { label: 'Reset position', click: () => { const [x, bottom] = cornerPos(); const h = win.getBounds().height; win.setBounds({ x, y: bottom - h, width: px(WIN_W), height: h }); savePos() } },
   { label: 'Play a random gag', click: () => win.webContents.executeJavaScript('window.gag && window.gag()').catch(() => {}) },
   { label: 'Preview animation', submenu: [{ label: 'Live (auto)', click: () => { preview = null } }, ...PREVIEWS.map(s => ({ label: s, click: () => { preview = s } }))] },
@@ -481,18 +579,28 @@ const buildMenu = () => Menu.buildFromTemplate([
   { label: 'Quit', click: () => app.quit() },
 ])
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (!gotLock) return
+  platformCaps = await platform.capabilities()
+  updates = createUpdates({ app, dialog, shell, loadSettings, saveSettings, onChange: notifySettings,
+    updater: app.isPackaged && (process.platform === 'win32' || process.env.APPIMAGE) ? require('electron-updater').autoUpdater : undefined })
   createWindow()
+  if (process.platform === 'darwin') app.dock.hide()
   tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')))
   tray.setToolTip('Claude Desktop Pet')
   tray.on('click', toggle)
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()))
+  if (process.platform === 'linux') tray.setContextMenu(buildMenu())
   if (Date.now() - (loadSettings().updateCheckedAt || 0) > 86400000) setTimeout(() => checkForUpdates(false), 15000)
-  if (!loadSettings().startupSet) { setStartup(true); saveSettings({ startupSet: true }) }
-  else repairStartup()
+  startup.repair()
+  // Refresh only our existing packaged connection, including paths after an update.
+  if (app.isPackaged && loadSettings().hooksConnected && hooksConnected(claudeSettings(), [legacyHook])) {
+    try { updateHooks(false) } catch { openSettings() }
+  }
+  if (app.isPackaged && !loadSettings().setupShown) { openSettings(); saveSettings({ setupShown: true }) }
+  if (process.env.PET_OPEN_SETTINGS === '1') openSettings()
 
-  http.createServer((req, res) => {
+  const server = http.createServer((req, res) => {
     if (req.method !== 'POST' || (req.url !== '/event' && req.url !== '/usage')) { res.writeHead(404).end(); return }
     let body = ''
     req.on('data', c => { body += c; if (body.length > 40000) req.destroy() })
@@ -500,7 +608,12 @@ app.whenReady().then(() => {
       try { (req.url === '/usage' ? onUsage : onEvent)(JSON.parse(body)) } catch (err) { void err }
       res.writeHead(204).end()
     })
-  }).listen(PORT, '127.0.0.1')
+  })
+  server.on('error', error => {
+    dialog.showErrorBox('Claude Desktop Pet', error.code === 'EADDRINUSE' ? 'The hook port is already in use. Quit the other pet copy and relaunch.' : 'Could not start the local hook listener.')
+    app.quit()
+  })
+  server.listen(PORT, '127.0.0.1')
 
   setInterval(tick, 400)
   updateWeather()
@@ -511,5 +624,5 @@ app.whenReady().then(() => {
 })
 
 app.on('second-instance', () => { if (win) win.showInactive() })
-app.on('before-quit', () => { if (fsProc) fsProc.kill(); if (tray) { tray.destroy(); tray = null } })
+app.on('before-quit', () => { stopFsWatch(); if (tray) { tray.destroy(); tray = null } })
 app.on('window-all-closed', () => {})

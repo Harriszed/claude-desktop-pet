@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('pet', {
   onUsage: on('usage'),
   onWeather: on('weather'),
   onPrefs: on('prefs'),
+  onSound: on('sound'),
+  openSettings: () => ipcRenderer.invoke('open-settings'),
   focusSession: id => ipcRenderer.invoke('focus-session', id),
   toggleSize: () => ipcRenderer.invoke('toggle-size'),
   helperInfo: id => ipcRenderer.invoke('helper-info', id),

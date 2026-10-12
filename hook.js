@@ -7,7 +7,7 @@ process.stdin.on('data', c => { raw += c })
 
 const post = (url, body) => {
   const data = JSON.stringify(body)
-  const req = http.request({ host: '127.0.0.1', port: 47821, path: url, method: 'POST', timeout: 700, headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } }, res => { res.resume(); res.on('end', () => process.exit(0)) })
+  const req = http.request({ host: '127.0.0.1', port: Number(process.env.PET_TEST_PORT) || 47821, path: url, method: 'POST', timeout: 700, headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } }, res => { res.resume(); res.on('end', () => process.exit(0)) })
   req.on('error', () => process.exit(0))
   req.on('timeout', () => { req.destroy(); process.exit(0) })
   req.end(data)
@@ -29,7 +29,7 @@ const detailOf = i => {
 const send = () => {
   let e = {}
   try { e = JSON.parse(raw || '{}') } catch { e = {} }
-  if (process.argv[2] === '--statusline') {
+  if (process.argv.includes('--statusline')) {
     try { require('fs').writeFileSync(require('path').join(require('os').tmpdir(), 'claude-pet-statusline.json'), raw) } catch { void 0 }
     const r = e.rate_limits || {}
     const c = e.context_window || {}

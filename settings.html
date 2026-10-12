@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'">
+  <title>Claude Desktop Pet — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <header><img src="assets/icon.png" alt="" width="40" height="40"><div><h1>Make yourself at home.</h1><p>Claude Desktop Pet <span id="version"></span></p></div></header>
+  <main>
+    <section aria-labelledby="connection-title">
+      <h2 id="connection-title">Claude Code</h2>
+      <p id="connection-status">Checking connection…</p>
+      <p class="hint">Connect once, then restart your open Claude Code sessions. Your existing hooks and status line are preserved.</p>
+      <div class="actions"><button id="connect" class="primary">Connect Claude Code</button><button id="disconnect" hidden>Disconnect</button></div>
+    </section>
+    <section aria-labelledby="appearance-title">
+      <h2 id="appearance-title">On your desktop</h2>
+      <div class="row"><label for="scale">Pet size</label><select id="scale"><option value="1">Large</option><option value="0.8">Medium</option><option value="0.6">Small</option></select></div>
+      <div class="row"><label for="compact">Compact mode<span>Just the character and current activity.</span></label><input type="checkbox" id="compact" role="switch"></div>
+      <div class="row"><label for="alwaysOnTop">Always on top<span>Keep your companion above other windows.</span></label><input type="checkbox" id="alwaysOnTop" role="switch"></div>
+      <div class="row"><label for="hideFullscreen">Hide in fullscreen apps<span>Give games and videos the whole screen.</span></label><input type="checkbox" id="hideFullscreen" role="switch"></div>
+      <div class="row"><label for="corner">Move to a corner</label><div class="inline"><select id="corner"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select><button id="move">Move</button></div></div>
+      <p id="platform-note" class="hint" hidden></p>
+    </section>
+    <section aria-labelledby="personality-title">
+      <h2 id="personality-title">A little personality</h2>
+      <div class="row"><label for="chatter">Idle chatter<span>Occasional quips and silly pixel gags.</span></label><input type="checkbox" id="chatter" role="switch"></div>
+      <div class="row"><label for="weather">Weather effects<span>Local rain, snow and fog. Uses approximate IP location.</span></label><input type="checkbox" id="weather" role="switch"></div>
+      <div class="row"><label for="sound">Completion chime<span>A quiet sound when Claude finishes. Off by default.</span></label><input type="checkbox" id="sound" role="switch"></div>
+      <div class="row"><label for="soundVolume">Chime volume <output id="volume-label" for="soundVolume">35%</output></label><div class="inline"><input id="soundVolume" type="range" min="0" max="100" step="5"><button id="test-sound">Test chime</button></div></div>
+    </section>
+    <section aria-labelledby="startup-title">
+      <h2 id="startup-title">Ready when you are</h2>
+      <div class="row"><label for="startup">Start at login<span>Launch the pet when you sign in.</span></label><input type="checkbox" id="startup" role="switch"></div>
+      <div class="row"><div><b>Updates</b><span id="update-status">Checks once a day.</span></div><button id="check-updates">Check for updates</button></div>
+      <div class="actions"><button id="install-update" class="primary" hidden>Restart and install</button><button id="releases">Downloads &amp; release notes</button></div>
+    </section>
+  </main>
+  <footer><span>Changes save automatically.</span><p id="feedback" role="status" aria-live="polite"></p></footer>
+  <script src="settings.js"></script>
+</body>
+</html>
