@@ -81,6 +81,8 @@ npm start
 
 Restart any open Claude Code sessions so they pick up the hooks. Then right-click the tray icon and tick **Start with Windows** if you want it always there.
 
+**No command window:** after the first setup, double-click `Start Pet.vbs` to launch the pet without a terminal. Quit it from the tray menu.
+
 To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 
 ## Tray menu
@@ -89,6 +91,7 @@ To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 |---|---|
 | Show / hide | Toggle the pet |
 | Compact | Smaller version, just the character |
+| Always on top | Keep the pet above other windows (on by default) |
 | Idle chatter | Random quips and gags while idle |
 | Weather effects | Rain, snow and fog from your local weather |
 | Hide in fullscreen apps | Gets out of the way of games and videos |
@@ -97,7 +100,7 @@ To remove it: `npm run uninstall-hooks`, then quit from the tray menu.
 | Play a random gag | See one right now |
 | Preview animation / weather | Try any state or weather |
 
-You can also drag the card anywhere and click the character for details.
+You can also drag the card anywhere, click the character for details, and click the project name in the top-left to switch between full size and small.
 
 <p align="center"><img src="docs/weather.png" alt="Rain and snow"></p>
 
