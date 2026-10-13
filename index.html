@@ -577,7 +577,7 @@ setInterval(() => {
   setTimeout(() => { quip = ''; renderBubble() }, 4000)
 }, 60000)
 
-const GAGS = [['coffee', 'Coffee. Always coffee.', 5.5], ['deploy', 'Deploying to prod...', 4.6], ['dance', '*ships it*', 4.7], ['buffering', 'Buffering...', 5], ['hallucinate', 'Totally real. Trust me.', 3.8], ['tokens', 'Counting tokens...', 5.1], ['context', 'Context window: feeling full', 3.7], ['prompt', 'Thinking really hard...', 4], ['robot', 'Hello, fellow AI', 5.1], ['nap', 'Fine-tuning myself...', 4.8]]
+const GAGS = [['coffee', 'Coffee. Always coffee.', 5.5], ['deploy', 'Deploying to prod...', 4.6], ['dance', '*ships it*', 4.7], ['buffering', 'Buffering...', 5], ['hallucinate', 'Totally real. Trust me.', 3.8], ['tokens', 'Counting tokens...', 5.1], ['context', 'Context window: feeling full', 3.7], ['prompt', 'Thinking really hard...', 6.86], ['robot', 'Hello, fellow AI', 5.1], ['nap', 'Fine-tuning myself...', 4.8]]
 let lastGag = -1
 const playGag = () => {
   let i; do { i = Math.floor(Math.random() * GAGS.length) } while (i === lastGag)

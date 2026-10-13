@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+### Changed
+- Replaced the flashing thinking gag with a subtler deep-thought animation and allowed its full 6.86-second loop to finish.
+
 ## 1.3.0
 
 ### Added

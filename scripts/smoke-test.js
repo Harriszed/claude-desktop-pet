@@ -34,7 +34,7 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
   assert.ok(settings, 'settings window opens')
-  await settings.waitForSelector('#version:has-text("1.3.0")')
+  await settings.waitForSelector(`#version:has-text("${require('../package.json').version}")`)
   const errors = []
   settings.on('pageerror', error => errors.push(error.message))
   const pet = app.windows().find(page => page.url().endsWith('/index.html'))

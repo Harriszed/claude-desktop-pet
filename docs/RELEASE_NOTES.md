@@ -1,40 +1,21 @@
-# Claude Desktop Pet 1.3.0
+# Claude Desktop Pet 1.3.1
 
-Install your companion without Node.js or a terminal, then make it your own from the new Settings window.
+A calmer "Thinking really hard..." idle gag: subtle head scratching and eye movements, followed by a lightbulb moment. The full 6.86-second animation now finishes before the pet returns to idle.
 
-![Claude Desktop Pet in action](https://raw.githubusercontent.com/Harriszed/claude-desktop-pet/v1.3.0/docs/promo.gif)
+![Updated deep-thought animation](https://raw.githubusercontent.com/Harriszed/claude-desktop-pet/v1.3.1/docs/gifs/gag-prompt.gif)
 
 ## Downloads
 
 | Your computer | Asset |
 |---|---|
-| Windows 10/11, x64 | `Claude-Desktop-Pet-1.3.0-Setup-x64.exe` |
-| macOS, Intel or Apple Silicon | `Claude-Desktop-Pet-1.3.0-mac-universal.dmg` |
-| Linux x64 | `Claude-Desktop-Pet-1.3.0-linux-x86_64.AppImage` or `Claude-Desktop-Pet-1.3.0-linux-amd64.deb` |
+| Windows 10/11, x64 | `Claude-Desktop-Pet-1.3.1-Setup-x64.exe` |
+| macOS, Intel or Apple Silicon | `Claude-Desktop-Pet-1.3.1-mac-universal.dmg` |
+| Linux x64 | `Claude-Desktop-Pet-1.3.1-linux-x86_64.AppImage` or `Claude-Desktop-Pet-1.3.1-linux-amd64.deb` |
 
-Open the app, choose **Settings → Connect Claude Code**, and restart your Claude Code sessions. Your existing hooks and custom status line are preserved.
+## Updating
 
-![Connect Claude Code from Settings](https://raw.githubusercontent.com/Harriszed/claude-desktop-pet/main/docs/setup.gif)
+Choose **Check for updates** in Settings or the tray menu. Windows installer and Linux AppImage users can download the update inside the app, then choose **Restart and install**. macOS and Debian users can download and replace their app or package. Your preferences are kept.
 
-## What’s new
+Source users: quit the pet, run `git pull` and `npm install` in the project folder, then relaunch.
 
-- **One place for preferences.** Size, compact mode, always on top, fullscreen hiding, weather, chatter, startup and sound now live in Settings. Open it from the tray or by right-clicking the pet.
-- **A quiet completion chime.** Optional, off by default, with a volume control and Test chime button.
-- **Easier updates.** Windows installers and Linux AppImages can download an update inside the app and install it when you choose to restart. macOS and Debian installs open the latest download instead.
-- **More desktops.** macOS and Linux startup support, plus fullscreen detection and session focus on macOS and Linux X11.
-- **Safer connections.** Backups, repair and disconnect controls; reconnecting avoids duplicate pet hooks.
-- **Updated runtime.** Electron 44; source installs now need Node.js 22.12 or later.
-
-![New Settings window](https://raw.githubusercontent.com/Harriszed/claude-desktop-pet/v1.3.0/docs/settings.png)
-
-## Existing users
-
-Quit the old pet before running the new one. Your saved preferences stay in the same place. Choose **Repair connection** after switching from a source install to a packaged app, then restart your Claude Code sessions.
-
-Source installs still update with `git pull` and `npm install`; quit before running npm on Windows.
-
-## Platform details
-
-These community builds are unsigned. Windows may show SmartScreen; macOS may need **Privacy & Security → Open Anyway**. Managed Macs may block unsigned apps. macOS fullscreen detection and session focus can require Accessibility and Automation access. Linux X11 uses `xprop` and `wmctrl`; Wayland restricts fullscreen detection and session focus. AppImages may require FUSE compatibility packages.
-
-See the [setup guide](https://github.com/Harriszed/claude-desktop-pet/tree/v1.3.0#install) and [full changelog](https://github.com/Harriszed/claude-desktop-pet/blob/v1.3.0/CHANGELOG.md).
+These community builds are unsigned. See the [setup and platform notes](https://github.com/Harriszed/claude-desktop-pet/tree/v1.3.1#install) and [full changelog](https://github.com/Harriszed/claude-desktop-pet/blob/v1.3.1/CHANGELOG.md).
