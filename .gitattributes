@@ -1,0 +1,2 @@
+# Keep imported SVG bytes stable for provenance checks on every platform.
+assets/*.svg text eol=lf

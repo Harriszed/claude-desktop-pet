@@ -10,6 +10,7 @@ section { padding: 22px 0; border-bottom: 1px solid var(--line); }
 h2 { margin: 0 0 12px; font-size: 15px; font-weight: 650; color: #f1a98e; }
 p { margin: 8px 0; }
 .hint { color: var(--muted); font-size: 12px; max-width: 65ch; }
+.hint.error { color: #ffb7a7; }
 .row { min-height: 50px; display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 9px 0; }
 .row label, .row b { font-weight: 550; }
 .row span { display: block; margin-top: 3px; max-width: 38ch; color: var(--muted); font-size: 12px; font-weight: 400; }

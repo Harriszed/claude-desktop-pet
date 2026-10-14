@@ -2,9 +2,13 @@
 <html>
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" href="vfx.css">
 <style>
   html, body { margin: 0; background: transparent; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
-  .card { box-sizing: border-box; width: 340px; height: 100vh; margin: 0; padding: 10px 10px 8px; border: 1px solid #d97757; border-radius: 12px; background: linear-gradient(180deg, #292623 0%, #1f1d1b 45%, #181614 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(0,0,0,.25), inset 0 -3px 8px rgba(0,0,0,.45), inset 0 8px 14px rgba(255,255,255,.03); -webkit-app-region: drag; position: relative; }
+  .card { box-sizing: border-box; width: 340px; height: 100vh; margin: 0; padding: 10px 10px 8px; border: 1px solid #d97757; border-radius: 12px; background: linear-gradient(180deg, #292623 0%, #1f1d1b 45%, #181614 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(0,0,0,.25), inset 0 -3px 8px rgba(0,0,0,.45), inset 0 8px 14px rgba(255,255,255,.03); position: relative; }
+  /* Native drag regions ignore DOM pointer-events. Keep them off scene overlays. */
+  .top, .status { -webkit-app-region: drag; }
+  #resize, #resize *, .multi, .multi *, .usage, .usage * { -webkit-app-region: no-drag; }
   .project { height: 18px; font-size: 13px; color: #c9c3bb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .scene { position: relative; width: 318px; height: 106px; margin-top: 4px; overflow: hidden; border-radius: 4px; }
   .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -72,9 +76,6 @@
   @keyframes fog { to { transform: translateX(33.3%); } }
   .wx .flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: flash 7s infinite; }
   @keyframes flash { 0%, 92%, 96%, 100% { opacity: 0; } 93% { opacity: 0.5; } 94.5% { opacity: 0.1; } 95% { opacity: 0.4; } }
-  .wx i.f { width: 3px; height: 3px; background: #d8f06a; box-shadow: 0 0 5px #d8f06a; animation: fly ease-in-out infinite alternate; }
-  @keyframes fly { 0% { opacity: 0; transform: translate(0, 0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(12px, -10px); } }
-  .card::after { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; opacity: 0; }
   .card.shimmer { animation: ping 1.6s ease-out 1; }
   @keyframes ping { 0% { border-color: #7bc47f; } 100% { border-color: #d97757; } }
   @keyframes sweep { 0% { opacity: 1; background-position: 150% 0; } 100% { opacity: 1; background-position: -50% 0; } }
@@ -99,8 +100,7 @@
 </head>
 <body>
 <div class="card">
-  <svg id="resize" viewBox="0 0 14 14" fill="none" stroke="#c9c3bb" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><title>Resize</title><path d="M3 11L11 3M7 3h4v4M3 7v4h4"/></svg>
-  <div class="top"><div class="project" id="project">Claude</div><div class="multi" id="multi" hidden></div><div class="tasks" id="tasks" hidden></div></div>
+  <div class="top"><div class="project" id="project">Claude</div><div class="multi" id="multi" hidden></div><div class="tasks" id="tasks" hidden></div><svg id="resize" viewBox="0 0 14 14" fill="none" stroke="#c9c3bb" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><title>Resize</title><path d="M3 11L11 3M7 3h4v4M3 7v4h4"/></svg></div>
   <div class="scene" id="scene">
     <svg id="backdrop" viewBox="0 20 600 200" preserveAspectRatio="none" shape-rendering="crispEdges"></svg>
     <img id="char" src="assets/idle.svg" alt="">
@@ -114,7 +114,11 @@
   <div class="info" id="info" hidden></div>
   <div class="status"><div class="dot" id="dot"></div><b>Claude</b><span id="label">Waiting for you</span><div class="usage" id="usage" hidden></div></div>
 </div>
+<script src="animation-catalog.js"></script>
+<script src="idle-animations.js"></script>
+<script src="vfx.js"></script>
 <script>
+const ANIMATIONS = window.PET_ANIMATIONS.states
 const LANE_W = 600, VIEW_TOP = 20, VIEW_H = 200, GROUND_Y = 196, PX = 6
 const K = 318 / LANE_W
 const WALK_SPEED = 90, MIN_X = 120, MAX_X = 240, CENTER_X = 180, WANDER_MS = 15000
@@ -166,7 +170,7 @@ const orb = (cx, cy, r, fill) => {
   return p.join('')
 }
 const CLOUDS = [[60, 52, 1], [318, 40, 0.8], [452, 80, 0.9], [180, 34, 0.7], [560, 46, 0.8], [230, 86, 0.6], [8, 92, 0.7], [390, 98, 0.6], [510, 22, 0.7]]
-const cloud = (x, y, s, o, col) => `<g opacity="${(0.9 * o).toFixed(2)}">${rect(x + 12 * s, y - 6, 24 * s, 6, col)}${rect(x + 4 * s, y, 42 * s, 6, col)}${rect(x, y + 6, 54 * s, 6, col)}${rect(x + 8 * s, y + 12, 36 * s, 3, col)}</g>`
+const cloud = (x, y, s, o, col) => `<g class="fx-cloud" data-fx-key="cloud-${x}" style="animation-delay:-${x % 40}s" opacity="${(0.9 * o).toFixed(2)}">${rect(x + 12 * s, y - 6, 24 * s, 6, col)}${rect(x + 4 * s, y, 42 * s, 6, col)}${rect(x, y + 6, 54 * s, 6, col)}${rect(x + 8 * s, y + 12, 36 * s, 3, col)}</g>`
 const skyGradient = (stops, bands) => Array.from({ length: bands }, (_, k) => {
   const t = (k / (bands - 1)) * (stops.length - 1)
   const j = Math.min(stops.length - 2, Math.floor(t))
@@ -196,8 +200,11 @@ const backdrop = () => {
   const p = []
   const BANDS = 16
   const band = Math.ceil((GROUND_Y - VIEW_TOP) / BANDS)
+  p.push('<g data-fx-key="sky-layer">')
   skyGradient(c.sky, BANDS).forEach((f, i) => p.push(rect(0, VIEW_TOP + i * band, LANE_W, band + 1, f)))
-  if (c.stars > 0.02) p.push(`<g opacity="${c.stars.toFixed(2)}">${STARS.map(([x, y], k) => rect(x, y, k % 4 === 0 ? 4 : 3, k % 4 === 0 ? 4 : 3, '#e9e4d4')).join('')}</g>`)
+  p.push('</g><g data-fx-key="star-layer">')
+  if (c.stars > 0.02) p.push(`<g opacity="${c.stars.toFixed(2)}">${STARS.map(([x, y], k) => `<g class="fx-star" data-fx-key="star-${k}" style="animation-delay:-${k * .7}s;animation-duration:${4 + k % 4}s">${rect(x, y, k % 4 === 0 ? 4 : 3, k % 4 === 0 ? 4 : 3, '#e9e4d4')}</g>`).join('')}</g>`)
+  p.push('</g><g data-fx-key="celestial-layer">')
   const arc = t => [Math.round(40 + t * 520), Math.round(GROUND_Y - 50 - Math.sin(Math.PI * t) * (GROUND_Y - VIEW_TOP - 84))]
   if (h >= 6 && h <= 19.5) {
     const t = (h - 6) / 13.5
@@ -214,7 +221,9 @@ const backdrop = () => {
     ;[[2, 0, 4], [1, 1, 6], [0, 2, 8], [0, 3, 8], [0, 4, 8], [0, 5, 8], [1, 6, 6], [2, 7, 4]].forEach(([dx, dy, w]) => p.push(rect(mx - 12 + dx * 3, my - 12 + dy * 3, w * 3, 3, '#efe3c2')))
     p.push(rect(mx - 3, my - 3, 6, 6, '#d9cba6'), rect(mx + 3, my + 6, 3, 3, '#d9cba6'), '</g>')
   }
+  p.push('</g><g data-fx-key="cloud-layer">')
   if (c.cloud > 0.02) CLOUDS.slice(0, w.clouds || 3).forEach(([x, y, s]) => p.push(cloud(x, y, s, c.cloud, c.cloudc)))
+  p.push('</g><g data-fx-key="terrain-layer">')
   const far = mix(c.sky[3], c.hill[0], 0.55)
   const near = mix(c.hill[0], '#000000', 0.18)
   ridge(p, 54, 11, 83, 37, 1, far)
@@ -224,9 +233,32 @@ const backdrop = () => {
   p.push(rect(0, GROUND_Y + 7, LANE_W, VIEW_TOP + VIEW_H - GROUND_Y - 7, '#3b2f28'))
   for (let x = 14; x < LANE_W; x += 47) p.push(rect(x, GROUND_Y + 12 + ((x * 7) % 5), 4, 3, '#4d3e34'))
   for (let x = 8; x < LANE_W; x += 31) p.push(rect(x, GROUND_Y - 3, 3, 3, c.tuft))
+  p.push('</g>')
   return p.join('')
 }
-const drawBackdrop = () => { document.getElementById('backdrop').innerHTML = backdrop() }
+// Update attributes and static shapes without replacing animated SVG groups.
+const syncBackdropNode = (node, next) => {
+  for (const attribute of [...node.attributes]) if (!next.hasAttribute(attribute.name)) node.removeAttribute(attribute.name)
+  for (const attribute of next.attributes) if (node.getAttribute(attribute.name) !== attribute.value) node.setAttribute(attribute.name, attribute.value)
+  const previous = [...node.children], used = new Set()
+  ;[...next.children].forEach((fresh, index) => {
+    const key = fresh.getAttribute('data-fx-key')
+    let child = key ? previous.find(item => item.getAttribute('data-fx-key') === key) : previous[index]
+    if (!child || child.tagName !== fresh.tagName || used.has(child)) child = fresh.cloneNode(true)
+    else syncBackdropNode(child, fresh)
+    used.add(child)
+    if (node.children[index] !== child) node.insertBefore(child, node.children[index] || null)
+  })
+  for (const child of previous) if (!used.has(child)) child.remove()
+}
+const drawBackdrop = () => {
+  const next = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  next.innerHTML = backdrop()
+  // Preserve the root viewBox and dimensions; only reconcile its children.
+  const root = document.getElementById('backdrop')
+  for (const attribute of root.attributes) next.setAttribute(attribute.name, attribute.value)
+  syncBackdropNode(root, next)
+}
 drawBackdrop()
 
 const ch = document.getElementById('char')
@@ -234,18 +266,29 @@ const label = document.getElementById('label')
 const dot = document.getElementById('dot')
 let projectName = 'Claude'
 let state = 'idle', x = CENTER_X, walkTimer = 0, lastWalk = Date.now(), n = 0
+const idleCycle = window.createIdleAnimations({ variants: window.PET_ANIMATIONS.idleVariants, animations: ANIMATIONS,
+  weights: { idle: 2, 'idle-look-around': 3, 'idle-breathe': 3 }, onChange: name => show(name) })
+const idleMotion = matchMedia('(prefers-reduced-motion: reduce)')
+let idleVisible = true
+const syncIdlePause = () => idleCycle.setPaused(!idleVisible || document.hidden || idleMotion.matches)
+idleMotion.addEventListener('change', syncIdlePause)
+document.addEventListener('visibilitychange', syncIdlePause)
+window.addEventListener('beforeunload', () => idleCycle.dispose())
+syncIdlePause()
 
 const show = (name, flip) => {
   ch.style.transform = flip ? 'scaleX(-1)' : ''
   ch.src = `assets/${name}.svg?${++n}`
+  idleCycle.show(name)
 }
+const showState = s => show(s === 'idle' ? idleCycle.resolve(s) : s)
 const place = (nx, ms) => {
   ch.style.transition = ms ? `left ${ms}ms linear` : 'none'
   ch.style.left = `${nx * K}px`
   x = nx
   positionBubble(ms)
 }
-const settle = () => { walkTimer = 0; show(state) ; label.textContent = LABELS[state] ?? '' }
+const settle = () => { walkTimer = 0; showState(state); label.textContent = LABELS[state] ?? '' }
 
 const walkTo = to => {
   const ms = (Math.abs(to - x) / WALK_SPEED) * 1000
@@ -265,7 +308,7 @@ const setState = s => {
   dot.className = 'dot' + (s === 'idle' || s === 'asleep' ? '' : ' live')
   if (s !== 'idle') place(CENTER_X, 0)
   else place(x, 0)
-  show(s)
+  showState(s)
   label.textContent = LABELS[s] ?? ''
   lastWalk = Date.now()
 }
@@ -364,7 +407,7 @@ const wander = h => {
     el.style.transition = 'none'
     el.dataset.shown = h.state
     el.src = `assets/${h.state}.svg?${++n}`
-    h.timer = setTimeout(go, 2500 + Math.random() * 3000)
+    h.timer = setTimeout(go, Math.max(2500, (ANIMATIONS[h.state]?.duration || 0) * 1000) + Math.random() * 1500)
   }
   h.timer = setTimeout(work, 100)
 }
@@ -446,7 +489,7 @@ document.addEventListener('click', e => {
   if (id === 'main') {
     infoData = { main: true }
     drawInfo()
-    if (state === 'idle' && !walkTimer) { show('greeting'); setTimeout(() => { if (state === 'idle' && !walkTimer) show('idle') }, 1800) }
+    if (state === 'idle' && !walkTimer) { show('greeting'); setTimeout(() => { if (state === 'idle' && !walkTimer) showState('idle') }, ANIMATIONS.greeting.duration * 1000) }
   } else refreshInfo()
 })
 setInterval(() => { if (infoId) refreshInfo() }, 2000)
@@ -520,14 +563,12 @@ usageEl.addEventListener('click', () => {
 })
 setInterval(renderUsage, 30000)
 
-// Weather: the sky is tinted by backdrop(); rain, snow, fog, lightning and fireflies are animated overlays.
+// Weather remains separate from decorative effects. Fireflies live in vfx.js.
 let wxSig = ''
 const wxEl = document.getElementById('wx')
-const isNight = () => { const hr = hourNow(); return hr >= 20.5 || hr < 5.5 }
 const rnd = (a, b) => a + Math.random() * (b - a)
 const buildWx = () => {
-  const night = isNight()
-  const sig = wxKind + (night ? 'n' : 'd')
+  const sig = wxKind
   if (sig === wxSig) return
   wxSig = sig
   const out = []
@@ -536,54 +577,41 @@ const buildWx = () => {
   if (wxKind === 'storm') { drops('r', 40, 0.45); out.push('<div class="flash"></div>') }
   if (wxKind === 'snow') drops('s', 24, 3.2)
   if (wxKind === 'fog') for (let k = 0; k < 3; k++) out.push(`<div class="fog" style="top:${58 + k * 14}px;animation-duration:${60 + k * 25}s;animation-delay:-${k * 17}s"></div>`)
-  if (night && (wxKind === 'clear' || wxKind === 'partly')) for (let k = 0; k < 8; k++) out.push(`<i class="f" style="left:${rnd(10, 300).toFixed(0)}px;top:${rnd(72, 100).toFixed(0)}px;animation-duration:${rnd(2.5, 5).toFixed(1)}s;animation-delay:-${rnd(0, 4).toFixed(1)}s"></i>`)
   wxEl.innerHTML = out.join('')
 }
-const setWeather = kind => { wxKind = kind || 'clear'; drawBackdrop(); buildWx() }
+const updateEffectsEnvironment = () => effects.environment({ hour: hourNow(), kind: wxKind, month: new Date().getMonth() })
+const setWeather = kind => { wxKind = kind || 'clear'; drawBackdrop(); buildWx(); updateEffectsEnvironment() }
 window.pet.onWeather(setWeather)
-setInterval(() => { drawBackdrop(); buildWx() }, 60000)
+setInterval(() => { drawBackdrop(); buildWx(); updateEffectsEnvironment() }, 60000)
 
-// Shimmer on "done", gentle pulse while Claude needs you.
+// Preserve the existing celebration, now controlled alongside the new effects.
 const cardEl = document.querySelector('.card')
 const sceneEl = document.getElementById('scene')
-let fxTimer = 0
-const fx = s => {
-  cardEl.classList.toggle('glow', s === 'waiting-for-you')
-  if (s !== 'done') return
-  cardEl.classList.remove('shimmer')
-  void cardEl.offsetWidth
-  cardEl.classList.add('shimmer')
-  const sp = []
-  for (let k = 0; k < 3; k++) {
-    const e = document.createElement('div')
-    e.className = 'sp'
-    e.style.left = `${Math.round(x * K + rnd(0, 128))}px`
-    e.style.top = `${Math.round(rnd(20, 60))}px`
-    e.style.animationDelay = `${(k * 0.3).toFixed(2)}s`
-    sceneEl.appendChild(e)
-    sp.push(e)
-  }
-  clearTimeout(fxTimer)
-  fxTimer = setTimeout(() => { sp.forEach(e => e.remove()); cardEl.classList.remove('shimmer') }, 2200)
-}
+const effects = window.createPetEffects({ scene: sceneEl, card: cardEl, character: ch, onWake: () => show('greeting'), onReady: () => showState(state) })
+const fx = s => effects.onState(s)
+updateEffectsEnvironment()
+window.pet.onBootPreview(() => effects.previewBoot())
+window.pet.onVisibility(value => { idleVisible = value; syncIdlePause(); effects.setVisible(value) })
 
 document.getElementById('resize').addEventListener('click', () => window.pet.toggleSize())
-window.pet.onPrefs(p => { document.body.classList.toggle('compact', !!p.compact); chatter = p.chatter !== false })
+window.pet.onPrefs(p => { document.body.classList.toggle('compact', !!p.compact); chatter = p.chatter !== false; effects.configure(p) })
 const QUIPS = ['*stretches*', 'Ready when you are', 'Nice day for coding', 'Hmm...', 'Any bugs today?', 'Snack break?', 'Still here!', 'Tests pass? Probably.']
 setInterval(() => {
-  if (!chatter || state !== 'idle' || walkTimer || meta.action || quip || Math.random() > 0.5) return
+  if (!chatter || state !== 'idle' || effects.isBooting() || walkTimer || meta.action || quip || Math.random() > 0.5) return
   quip = QUIPS[Math.floor(Math.random() * QUIPS.length)]
   renderBubble()
   setTimeout(() => { quip = ''; renderBubble() }, 4000)
 }, 60000)
 
-const GAGS = [['coffee', 'Coffee. Always coffee.', 5.5], ['deploy', 'Deploying to prod...', 4.6], ['dance', '*ships it*', 4.7], ['buffering', 'Buffering...', 5], ['hallucinate', 'Totally real. Trust me.', 3.8], ['tokens', 'Counting tokens...', 5.1], ['context', 'Context window: feeling full', 3.7], ['prompt', 'Thinking really hard...', 6.86], ['robot', 'Hello, fellow AI', 5.1], ['nap', 'Fine-tuning myself...', 4.8]]
+const GAGS = [['coffee', 'Coffee. Always coffee.'], ['deploy', 'Deploying to prod...'], ['dance', '*ships it*'], ['buffering', 'Buffering...'], ['hallucinate', 'Totally real. Trust me.'], ['tokens', 'Counting tokens...'], ['context', 'Context window: feeling full'], ['prompt', 'Thinking really hard...'], ['robot', 'Hello, fellow AI'], ['nap', 'Fine-tuning myself...']]
+const AUTOMATIC_GAG_CHANCE = 0.35
 let lastGag = -1
 const playGag = () => {
+  if (effects.isBooting()) return
   let i; do { i = Math.floor(Math.random() * GAGS.length) } while (i === lastGag)
   lastGag = i
   lastWalk = Date.now()
-  const [g, say, secs] = GAGS[i], ms = Math.round(secs * 1000) + 200
+  const [g, say] = GAGS[i], ms = Math.round(ANIMATIONS['gag-' + g].duration * 1000) + 200
   clearTimeout(walkTimer)
   show('gag-' + g)
   label.textContent = ''
@@ -591,7 +619,7 @@ const playGag = () => {
   walkTimer = setTimeout(() => { quip = ''; renderBubble(); settle() }, ms)
 }
 setInterval(() => {
-  if (!chatter || state !== 'idle' || helperEls.size || walkTimer || meta.action || quip || document.body.classList.contains('compact') || Math.random() > 0.5) return
+  if (!chatter || state !== 'idle' || helperEls.size || walkTimer || meta.action || quip || document.body.classList.contains('compact') || Math.random() > AUTOMATIC_GAG_CHANCE) return
   playGag()
 }, 12000)
 window.gag = playGag
@@ -610,7 +638,7 @@ window.pet.onMeta(m => {
 })
 
 setInterval(() => {
-  if (state !== 'idle' || walkTimer || quip || meta.action || Date.now() - lastWalk < WANDER_MS) return
+  if (state !== 'idle' || effects.isBooting() || walkTimer || quip || meta.action || Date.now() - lastWalk < WANDER_MS) return
   let to = Math.round(MIN_X + Math.random() * (MAX_X - MIN_X))
   if (Math.abs(to - x) < 45) to = x > (MIN_X + MAX_X) / 2 ? MIN_X : MAX_X
   walkTo(to)

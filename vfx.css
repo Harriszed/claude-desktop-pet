@@ -1,0 +1,34 @@
+.fx-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.fx-layer i { position: absolute; display: block; }
+.fx-night, .fx-atmosphere { z-index: 1; opacity: var(--fx-strength, .5); }
+.fx-activity { z-index: 4; opacity: var(--fx-strength, .5); }
+.fx-celebration { z-index: 6; }
+.fx-firefly { width: 3px; height: 3px; background: #d8f06a; box-shadow: 0 0 5px #d8f06a; animation: fx-fly ease-in-out infinite alternate; }
+@keyframes fx-fly { 0% { opacity: 0; transform: translate(0, 0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(12px, -10px); } }
+.fx-shooting-star { width: 3px; height: 3px; background: #efe3c2; box-shadow: -4px -2px #efe3c280, -8px -4px #efe3c240; opacity: 0; animation: fx-shoot linear infinite; }
+@keyframes fx-shoot { 0%, 94% { opacity: 0; transform: translate(0, 0); } 94.2% { opacity: 1; } 96% { opacity: 0; transform: translate(75px, 35px); } 100% { opacity: 0; transform: translate(75px, 35px); } }
+.fx-night-on .fx-star { animation: fx-star 5s ease-in-out infinite alternate; }
+@keyframes fx-star { from { opacity: .35; } to { opacity: 1; } }
+.fx-cloud { animation: fx-cloud 65s ease-in-out infinite alternate; animation-play-state: paused; }
+.fx-clouds-on .fx-cloud { animation-play-state: running; }
+@keyframes fx-cloud { from { transform: translateX(-12px); } to { transform: translateX(22px); } }
+.fx-dust { width: 2px; height: 2px; background: #f1ddd0; opacity: 0; animation: fx-dust ease-in-out infinite; }
+@keyframes fx-dust { 0%, 100% { opacity: 0; transform: translate(0, 0); } 30%, 65% { opacity: .55; } 90% { opacity: 0; transform: translate(24px, -20px); } }
+.fx-leaf { width: 4px; height: 3px; background: #d99453; box-shadow: 2px 1px #ad6543; opacity: 0; animation: fx-leaf linear infinite; }
+.fx-leaf:nth-child(even) { background: #b9994f; box-shadow: 2px 1px #887242; }
+@keyframes fx-leaf { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 8%, 75% { opacity: .8; } 30% { transform: translate(10px, 34px) rotate(80deg); } 65% { transform: translate(-8px, 75px) rotate(180deg); } 100% { opacity: 0; transform: translate(14px, 118px) rotate(250deg); } }
+.fx-work-spark { width: 2px; height: 2px; background: #f0b35c; box-shadow: 0 0 4px #d9775770; opacity: 0; animation: fx-work ease-out infinite; }
+@keyframes fx-work { 0%, 25%, 100% { opacity: 0; transform: translateY(0); } 35% { opacity: .8; } 70% { opacity: 0; transform: translateY(-14px); } }
+.fx-scanlines { z-index: 7; opacity: calc(var(--fx-strength, .5) * .35); background: repeating-linear-gradient(0deg, #171a2c 0 1px, transparent 1px 4px); }
+.fx-boot { z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #171a2c; color: #e8e2da; font: 11px/1.4 Consolas, monospace; opacity: 1; transition: opacity 200ms ease-out; }
+.fx-boot[hidden] { display: none; }
+.fx-boot-reveal { opacity: 0; }
+.fx-boot-track { width: 96px; height: 4px; background: #3b2f28; position: relative; }
+.fx-boot-track i { inset: 0; background: #d97757; transform-origin: left; animation: fx-load 800ms steps(8, end) both; }
+@keyframes fx-load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.fx-booting #char { opacity: 0; }
+.fx-paused .fx-star, .fx-paused .fx-cloud { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .fx-night, .fx-atmosphere, .fx-activity, .fx-celebration, .fx-boot, .wx { display: none; }
+  .fx-star, .fx-cloud, .card.glow, .card.shimmer { animation: none !important; }
+}

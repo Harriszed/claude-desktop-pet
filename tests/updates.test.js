@@ -66,3 +66,70 @@ test('concurrent checks share one request', async () => {
   await first
   assert.equal(calls, 1)
 })
+
+function installer(overrides = {}) {
+  const updater = new EventEmitter()
+  const calls = { checked: 0, downloaded: 0, installed: [] }
+  updater.checkForUpdates = async () => { calls.checked++; return { updateInfo: { version: '1.4.0' } } }
+  updater.downloadUpdate = async () => { calls.downloaded++; updater.emit('download-progress', { percent: 42 }); return ['Setup.exe'] }
+  updater.quitAndInstall = (...args) => calls.installed.push(args)
+  Object.assign(updater, overrides)
+  return { ...fixture({ app: { isPackaged: true, getVersion: () => '1.3.0' }, updater }), updater, calls }
+}
+test('Settings checks, downloads and installs the Windows exe as separate explicit actions', async () => {
+  const { updates, messages, calls, updater } = installer()
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'available')
+  assert.equal(updates.status().automaticInstall, true)
+  assert.equal(calls.downloaded, 0)
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'downloaded')
+  assert.equal(calls.downloaded, 1)
+  assert.deepEqual(calls.installed, [])
+  assert.equal(messages.length, 0)
+  assert.equal(updater.autoInstallOnAppQuit, false)
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'installing')
+  assert.deepEqual(calls.installed, [[true, true]])
+  await updates.settingsAction()
+  assert.equal(calls.installed.length, 1)
+})
+test('Settings keeps a failed download available for retry', async () => {
+  const { updates, updater, calls } = installer({ downloadUpdate: async () => { throw new Error('offline') } })
+  await updates.settingsAction()
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'available')
+  assert.match(updates.status().message, /try again/)
+  updater.downloadUpdate = async () => { calls.downloaded++ }
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'downloaded')
+})
+test('failed installer starts retain the download for retry', async () => {
+  const { updates, updater } = installer({ quitAndInstall: () => { throw new Error('locked') } })
+  await updates.settingsAction()
+  await updates.settingsAction()
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'downloaded')
+  updater.quitAndInstall = () => updater.emit('error', new Error('cannot spawn'))
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'downloaded')
+})
+test('Settings does not duplicate in-flight downloads', async () => {
+  let finish
+  const { updates } = installer({ downloadUpdate: () => new Promise(resolve => { finish = resolve }) })
+  await updates.settingsAction()
+  const downloading = updates.settingsAction()
+  await updates.settingsAction()
+  assert.equal(updates.status().phase, 'downloading')
+  finish()
+  await downloading
+  assert.equal(updates.status().phase, 'downloaded')
+})
+test('source copies show a release link without attempting exe installation', async () => {
+  const { updates, messages, links } = fixture({ fetcher: async () => ({ ok: true, json: async () => [{ name: 'v1.4.0' }] }) })
+  await updates.settingsAction()
+  assert.equal(updates.status().automaticInstall, false)
+  await updates.settingsAction()
+  assert.deepEqual(links, ['https://github.com/Harriszed/claude-desktop-pet/releases/latest'])
+  assert.deepEqual(messages, [])
+})

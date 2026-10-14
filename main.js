@@ -5,8 +5,11 @@ const os = require('os')
 const { spawn } = require('child_process')
 const fs = require('fs')
 const platform = require('./platform')
-const { configureHooks, hookCommand, hooksConnected } = require('./hook-settings')
+const { configureHooks, hookCommand, hooksConnected, ownsHook } = require('./hook-settings')
 const { createUpdates, RELEASES } = require('./updates')
+const { createConnectionTest } = require('./connection-test')
+const { states: ANIMATIONS } = require('./animation-catalog')
+const { USAGE_REFRESH_MINUTES, usageRefreshMinutes, createUsageRefresh } = require('./usage-refresh')
 
 // Keep the settings location identical for source and installed copies.
 app.setPath('userData', path.join(app.getPath('appData'), 'claude-desktop-pet'))
@@ -16,6 +19,8 @@ const startup = platform.createStartup(app)
 let platformCaps = { fullscreen: process.platform === 'win32', focus: process.platform === 'win32', note: '' }
 let settingsWin
 let updates
+const VFX_DEFAULTS = { vfx: true, vfxNight: true, vfxAtmosphere: true, vfxActivity: true, vfxCelebration: true, vfxScanlines: false, bootSequence: true, vfxIntensity: 35 }
+let bootSent = false
 
 const CRLF = String.fromCharCode(13, 10)
 const PORT = Number(process.env.PET_TEST_PORT) || 47821
@@ -25,7 +30,7 @@ const UG_H = 84
 const COMPACT_H = 40
 const TOOL_HOLD_MS = 2500
 const ERROR_HOLD_MS = 4000
-const DONE_MS = 5000
+const DONE_MS = ANIMATIONS.done.duration * 1000
 const GREETING_MS = 6000
 const SLEEP_MS = 10 * 60 * 1000
 const STALE_BUSY_MS = 5 * 60 * 1000
@@ -202,6 +207,7 @@ const onUsage = u => {
 
 let usageBackoff = 0
 const pollUsage = async () => {
+  if (process.env.PET_TEST_DATA) return // Isolated tests and demo captures use fixture usage only.
   if (Date.now() < usageBackoff) return
   try {
     const c = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', '.credentials.json'), 'utf8')).claudeAiOauth
@@ -215,6 +221,7 @@ const pollUsage = async () => {
     onUsage({ five: j.five_hour, seven: j.seven_day })
   } catch { void 0 }
 }
+const usageRefresh = createUsageRefresh(pollUsage)
 
 const WX_KIND = c => (c === 0 ? 'clear' : c <= 2 ? 'partly' : c === 3 ? 'cloudy' : c === 45 || c === 48 ? 'fog' : (c >= 51 && c <= 67) || (c >= 80 && c <= 82) ? 'rain' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : c >= 95 ? 'storm' : 'clear')
 let weather = 'clear'
@@ -369,7 +376,11 @@ const syncVisible = () => {
 
 const pushAll = () => {
   if (!win || win.isDestroyed()) return
-  win.webContents.send('prefs', { compact, chatter: !loadSettings().chatterOff })
+  const saved = loadSettings()
+  const effects = Object.fromEntries(Object.entries(VFX_DEFAULTS).map(([key, value]) => [key, saved[key] ?? value]))
+  win.webContents.send('visibility', win.isVisible())
+  win.webContents.send('prefs', { compact, chatter: !saved.chatterOff, ...effects, boot: !bootSent })
+  bootSent = true
   win.webContents.send('state', current)
   sendWeather()
   sendUsage()
@@ -397,6 +408,9 @@ const createWindow = () => {
   win.loadFile(path.join(__dirname, 'index.html'), process.env.PET_HOUR ? { query: { hour: process.env.PET_HOUR } } : undefined)
   win.once('ready-to-show', () => win.showInactive())
   win.on('moved', savePos)
+  // Transparent windows do not always report native hiding via document.hidden.
+  win.on('hide', () => win.webContents.send('visibility', false))
+  win.on('show', () => win.webContents.send('visibility', true))
   win.webContents.on('context-menu', () => Menu.buildFromTemplate([{ label: 'Settings…', click: openSettings }, { label: 'Show / hide', click: toggle }, { label: 'Quit', click: () => app.quit() }]).popup({ window: win }))
   win.webContents.on('did-finish-load', () => { win.webContents.setZoomFactor(SC); pushAll() })
 }
@@ -479,7 +493,10 @@ const settingsData = () => {
   return { version: app.getVersion(), compact, scale: SC, chatter: !saved.chatterOff, weather: !saved.weatherOff,
     alwaysOnTop: saved.alwaysOnTop !== false, hideFullscreen: saved.hideFullscreen !== false,
     sound: !!saved.sound, soundVolume: saved.soundVolume ?? 35, startup: startup.enabled(),
+    usageRefreshMinutes: usageRefreshMinutes(saved.usageRefreshMinutes),
+    ...Object.fromEntries(Object.entries(VFX_DEFAULTS).map(([key, value]) => [key, saved[key] ?? value])),
     connected: hooksConnected(claudeSettings(), [legacyHook]), capabilities: platformCaps,
+    connectionTest: connectionTest.status(),
     update: updates ? updates.status() : { phase: 'idle', message: 'Checks once a day.' } }
 }
 const notifySettings = () => {
@@ -488,11 +505,13 @@ const notifySettings = () => {
 }
 const setPreferences = patch => {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('Invalid preferences')
-  const booleans = ['compact', 'alwaysOnTop', 'hideFullscreen', 'chatter', 'weather', 'sound', 'startup']
+  const booleans = ['compact', 'alwaysOnTop', 'hideFullscreen', 'chatter', 'weather', 'sound', 'startup', ...Object.keys(VFX_DEFAULTS).filter(key => key !== 'vfxIntensity')]
   for (const [key, value] of Object.entries(patch)) {
     if (booleans.includes(key)) { if (typeof value !== 'boolean') throw new Error('Invalid preference value') }
     else if (key === 'scale') { if (![1, 0.8, 0.6].includes(value)) throw new Error('Invalid pet size') }
     else if (key === 'soundVolume') { if (!Number.isFinite(value) || value < 0 || value > 100) throw new Error('Invalid volume') }
+    else if (key === 'vfxIntensity') { if (!Number.isFinite(value) || value < 0 || value > 100) throw new Error('Invalid effects intensity') }
+    else if (key === 'usageRefreshMinutes') { if (!USAGE_REFRESH_MINUTES.includes(value)) throw new Error('Invalid usage refresh interval') }
     else throw new Error('Unknown preference')
   }
   if (patch.startup !== undefined) startup.set(patch.startup)
@@ -509,6 +528,7 @@ const setPreferences = patch => {
   if (patch.hideFullscreen !== undefined) { if (patch.hideFullscreen) startFsWatch(); else stopFsWatch() }
   pushAll()
   if (patch.weather === true) updateWeather()
+  if (patch.usageRefreshMinutes !== undefined) usageRefresh.set(patch.usageRefreshMinutes)
   notifySettings()
   return settingsData()
 }
@@ -537,9 +557,22 @@ const updateHooks = remove => {
   const options = { executable, hook, packaged: app.isPackaged }
   const result = configureHooks({ file: claudeSettings(), command: hookCommand(options), statusCommand: hookCommand({ ...options, statusline: true }), remove, legacyPaths: [legacyHook, hook] })
   saveSettings({ hooksConnected: !remove })
+  connectionTest.reset()
   notifySettings()
   return result
 }
+const connectionTest = createConnectionTest({
+  getCommand: () => {
+    let config
+    try { config = JSON.parse(fs.readFileSync(claudeSettings(), 'utf8')) }
+    catch { throw new Error('Could not read Claude Code settings. Connect Claude Code first, or fix the settings file if it is invalid.') }
+    if (!hooksConnected(claudeSettings(), [legacyHook])) throw new Error('Connect Claude Code first, then test again. Use Repair connection if some pet hooks are missing.')
+    const hook = (config.hooks.UserPromptSubmit || []).flatMap(group => group.hooks || []).find(h => ownsHook(h, [legacyHook]))
+    if (!hook) throw new Error('Connect Claude Code first, then test again.')
+    return hook.command
+  },
+  onChange: notifySettings,
+})
 const settingsOnly = handler => (event, ...args) => {
   if (!settingsWin || event.sender !== settingsWin.webContents) throw new Error('Settings window required')
   return handler(...args)
@@ -547,9 +580,11 @@ const settingsOnly = handler => (event, ...args) => {
 ipcMain.handle('settings-get', settingsOnly(settingsData))
 ipcMain.handle('settings-set', settingsOnly(setPreferences))
 ipcMain.handle('settings-hooks', settingsOnly(remove => { if (typeof remove !== 'boolean') throw new Error('Invalid connection action'); return updateHooks(remove) }))
-ipcMain.handle('settings-update', settingsOnly(() => checkForUpdates(true)))
+ipcMain.handle('settings-test-connection', settingsOnly(() => connectionTest.test()))
+ipcMain.handle('settings-update', settingsOnly(() => updates.settingsAction()))
 ipcMain.handle('settings-install-update', settingsOnly(() => updates.install()))
 ipcMain.handle('settings-test-sound', settingsOnly(() => win.webContents.send('sound', { volume: loadSettings().soundVolume ?? 35 })))
+ipcMain.handle('settings-preview-boot', settingsOnly(() => win.webContents.send('boot-preview')))
 ipcMain.handle('settings-snap', settingsOnly(corner => { if (!['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(corner)) throw new Error('Invalid corner'); snap(corner) }))
 ipcMain.handle('settings-releases', settingsOnly(() => shell.openExternal(RELEASES)))
 ipcMain.handle('open-settings', () => openSettings())
@@ -601,11 +636,15 @@ app.whenReady().then(async () => {
   if (process.env.PET_OPEN_SETTINGS === '1') openSettings()
 
   const server = http.createServer((req, res) => {
-    if (req.method !== 'POST' || (req.url !== '/event' && req.url !== '/usage')) { res.writeHead(404).end(); return }
+    if (req.method !== 'POST' || !['/event', '/usage', '/connection-test'].includes(req.url)) { res.writeHead(404).end(); return }
     let body = ''
     req.on('data', c => { body += c; if (body.length > 40000) req.destroy() })
     req.on('end', () => {
-      try { (req.url === '/usage' ? onUsage : onEvent)(JSON.parse(body)) } catch (err) { void err }
+      try {
+        const payload = JSON.parse(body)
+        if (req.url === '/connection-test') { res.writeHead(connectionTest.receive(payload) ? 204 : 404).end(); return }
+        ;(req.url === '/usage' ? onUsage : onEvent)(payload)
+      } catch (err) { void err }
       res.writeHead(204).end()
     })
   })
@@ -618,11 +657,11 @@ app.whenReady().then(async () => {
   setInterval(tick, 400)
   updateWeather()
   pollUsage()
-  setInterval(pollUsage, 2 * 60 * 1000)
+  usageRefresh.set(loadSettings().usageRefreshMinutes)
   setInterval(updateWeather, 20 * 60 * 1000)
   if (loadSettings().hideFullscreen !== false) startFsWatch()
 })
 
 app.on('second-instance', () => { if (win) win.showInactive() })
-app.on('before-quit', () => { stopFsWatch(); if (tray) { tray.destroy(); tray = null } })
+app.on('before-quit', () => { usageRefresh.dispose(); connectionTest.dispose(); stopFsWatch(); if (tray) { tray.destroy(); tray = null } })
 app.on('window-all-closed', () => {})

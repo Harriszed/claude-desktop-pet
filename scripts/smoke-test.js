@@ -41,6 +41,19 @@ async function main() {
   assert.ok(pet)
   pet.on('pageerror', error => errors.push(error.message))
   assert.equal(await settings.locator('#sound').isChecked(), false)
+  assert.equal(await settings.locator('#usageRefreshMinutes').inputValue(), '5')
+  for (const minutes of [1, 5, 15, 60]) {
+    await settings.locator('#usageRefreshMinutes').selectOption(String(minutes))
+    await settings.waitForFunction(async minutes => (await window.settings.get()).usageRefreshMinutes === minutes, minutes)
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'window.json'))).usageRefreshMinutes, minutes)
+  }
+  await settings.evaluate(async () => {
+    try { await window.settings.set({ usageRefreshMinutes: 2 }); throw new Error('Invalid interval accepted') }
+    catch (error) { if (!error.message.includes('Invalid usage refresh interval')) throw error }
+  })
+  assert.equal(await settings.locator('#usageRefreshMinutes').inputValue(), '60')
+  await settings.locator('#test-connection').click()
+  await settings.waitForFunction(() => document.querySelector('#connection-test-status').textContent.includes('Connect Claude Code first'))
   await settings.locator('#scale').selectOption('0.6')
   await settings.waitForFunction(() => document.querySelector('#feedback').textContent === 'Saved.')
   assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().endsWith('/index.html')).getBounds().width), 204)
@@ -64,6 +77,12 @@ async function main() {
   await settings.locator('#connect').click()
   await settings.waitForFunction(() => document.querySelector('#connection-status').textContent.includes('Connected.'))
   const hooks = JSON.parse(fs.readFileSync(env.PET_TEST_CLAUDE_SETTINGS, 'utf8'))
+  const originalHooks = fs.readFileSync(env.PET_TEST_CLAUDE_SETTINGS, 'utf8')
+  await settings.locator('#test-connection').click()
+  await settings.waitForFunction(() => document.querySelector('#connection-test-status').textContent.startsWith('Test passed.'))
+  assert.equal(fs.readFileSync(env.PET_TEST_CLAUDE_SETTINGS, 'utf8'), originalHooks, 'test leaves Claude settings unchanged')
+  assert.equal(await pet.evaluate(() => document.querySelector('#multi').hidden), true, 'test creates no session chips')
+  assert.equal(await pet.evaluate(() => document.querySelector('#label').textContent), 'Waiting for you', 'test creates no activity')
   await executeHook(hooks.hooks.UserPromptSubmit[0].hooks[0].command, { hook_event_name: 'UserPromptSubmit', session_id: 'smoke', cwd: 'C:\\Demo' })
   await pet.waitForFunction(() => document.querySelector('#label').textContent.includes('Thinking'), null, { timeout: 10000 })
   await executeHook(hooks.statusLine.command, { session_id: 'smoke', rate_limits: { five_hour: { used_percentage: 25, resets_at: new Date(Date.now() + 3600000).toISOString() } } })
@@ -98,7 +117,19 @@ async function main() {
   const width = await settings.evaluate(() => ({ actual: document.documentElement.scrollWidth, viewport: innerWidth }))
   assert.ok(width.actual <= width.viewport, 'settings do not overflow horizontally')
   assert.deepEqual(errors, [])
-  console.log(`${packaged ? 'Packaged' : 'Source'} smoke passed: settings, scaling, sound, hooks, status line, disconnect and persistence.`)
+  await app.close()
+  app = await electron.launch({ executablePath, args: packaged ? [] : [root], env })
+  await app.firstWindow()
+  let restoredSettings
+  for (let i = 0; i < 50; i++) {
+    restoredSettings = app.windows().find(page => page.url().endsWith('/settings.html'))
+    if (restoredSettings) break
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(restoredSettings, 'settings reopen after relaunch')
+  await restoredSettings.waitForFunction(() => document.querySelector('#usageRefreshMinutes').value === '60')
+  assert.equal(await restoredSettings.evaluate(async () => (await window.settings.get()).usageRefreshMinutes), 60)
+  console.log(`${packaged ? 'Packaged' : 'Source'} smoke passed: settings, usage refresh choices and restart persistence, scaling, sound, connection test, hooks, status line and disconnect.`)
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(async () => {
   if (app) await app.close()

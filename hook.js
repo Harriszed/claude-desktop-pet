@@ -27,6 +27,8 @@ const detailOf = i => {
 }
 
 const send = () => {
+  const testIndex = process.argv.indexOf('--connection-test')
+  if (testIndex !== -1) { post('/connection-test', { nonce: process.argv[testIndex + 1] }); return }
   let e = {}
   try { e = JSON.parse(raw || '{}') } catch { e = {} }
   if (process.argv.includes('--statusline')) {

@@ -14,7 +14,9 @@
       <h2 id="connection-title">Claude Code</h2>
       <p id="connection-status">Checking connection…</p>
       <p class="hint">Connect once, then restart your open Claude Code sessions. Your existing hooks and status line are preserved.</p>
-      <div class="actions"><button id="connect" class="primary">Connect Claude Code</button><button id="disconnect" hidden>Disconnect</button></div>
+      <div class="actions"><button id="connect" class="primary">Connect Claude Code</button><button id="test-connection">Test connection</button><button id="disconnect" hidden>Disconnect</button></div>
+      <p id="connection-test-status" class="hint" role="status" aria-live="polite" hidden></p>
+      <div class="row"><label for="usageRefreshMinutes">Usage refresh<span>Refresh the 5h and 7d usage figures.</span></label><select id="usageRefreshMinutes"><option value="1">1 minute</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60">1 hour</option></select></div>
     </section>
     <section aria-labelledby="appearance-title">
       <h2 id="appearance-title">On your desktop</h2>
@@ -32,11 +34,24 @@
       <div class="row"><label for="sound">Completion chime<span>A quiet sound when Claude finishes. Off by default.</span></label><input type="checkbox" id="sound" role="switch"></div>
       <div class="row"><label for="soundVolume">Chime volume <output id="volume-label" for="soundVolume">35%</output></label><div class="inline"><input id="soundVolume" type="range" min="0" max="100" step="5"><button id="test-sound">Test chime</button></div></div>
     </section>
+    <section aria-labelledby="effects-title">
+      <h2 id="effects-title">Visual effects</h2>
+      <p class="hint">Small touches inside the pet's scene. Weather has its own switch above. Animated effects pause when hidden and respect reduced motion.</p>
+      <div class="row"><label for="vfx">Enable visual effects<span>Turn all decorative effects on or off.</span></label><input type="checkbox" id="vfx" role="switch"></div>
+      <div class="row"><label for="vfxNight">Night sky &amp; fireflies<span>Twinkling stars, occasional shooting stars and the existing fireflies on clear nights.</span></label><input type="checkbox" id="vfxNight" role="switch"></div>
+      <div class="row"><label for="vfxAtmosphere">Atmosphere<span>Drifting clouds, floating dust and autumn leaves.</span></label><input type="checkbox" id="vfxAtmosphere" role="switch"></div>
+      <div class="row"><label for="vfxActivity">Work sparks<span>Tiny sparks while busy and the existing glow when Claude needs you.</span></label><input type="checkbox" id="vfxActivity" role="switch"></div>
+      <div class="row"><label for="vfxCelebration">Completion sparkles<span>The existing celebration when a task finishes.</span></label><input type="checkbox" id="vfxCelebration" role="switch"></div>
+      <div class="row"><label for="vfxScanlines">Retro scanlines<span>A faint CRT texture. Off by default.</span></label><input type="checkbox" id="vfxScanlines" role="switch"></div>
+      <div class="row"><label for="vfxIntensity">Effects intensity <output id="intensity-label" for="vfxIntensity">35%</output></label><input id="vfxIntensity" type="range" min="0" max="100" step="5"></div>
+      <div class="row"><label for="bootSequence">Boot sequence<span>A short wake-up and wave on launch. Live activity skips it.</span></label><input type="checkbox" id="bootSequence" role="switch"></div>
+      <div class="actions"><button id="preview-boot">Preview boot sequence</button></div>
+    </section>
     <section aria-labelledby="startup-title">
       <h2 id="startup-title">Ready when you are</h2>
       <div class="row"><label for="startup">Start at login<span>Launch the pet when you sign in.</span></label><input type="checkbox" id="startup" role="switch"></div>
-      <div class="row"><div><b>Updates</b><span id="update-status">Checks once a day.</span></div><button id="check-updates">Check for updates</button></div>
-      <div class="actions"><button id="install-update" class="primary" hidden>Restart and install</button><button id="releases">Downloads &amp; release notes</button></div>
+      <div class="row"><div><b>Updates</b><span id="update-status" role="status" aria-live="polite">Checks once a day.</span></div><button id="check-updates">Check for updates</button></div>
+      <div class="actions"><button id="releases">Downloads &amp; release notes</button></div>
     </section>
   </main>
   <footer><span>Changes save automatically.</span><p id="feedback" role="status" aria-live="polite"></p></footer>

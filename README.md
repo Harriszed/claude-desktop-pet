@@ -6,12 +6,12 @@
 </p>
 
 <p align="center">
-  <img src="docs/gifs/gag-coffee.gif" width="420" alt="Claude sipping coffee">
+  <img src="docs/hero.png" width="680" alt="Claude directing two helpers with task cards, session chips, task progress and usage">
 </p>
 
 <p align="center">
-  <img src="docs/promo.gif" width="640" alt="Claude Desktop Pet promo"><br>
-  <sub><a href="docs/promo.mp4">Watch in full quality</a></sub>
+  <img src="docs/promo.gif" width="680" alt="Current desktop pet recorded with day and night effects, task-card delegation and live helpers"><br>
+  <sub><a href="docs/promo.mp4">Watch the current app in full quality</a> · Example sessions and usage figures</sub>
 </p>
 
 <p align="center">
@@ -24,19 +24,23 @@
 
 A small always-on-top card sits in the corner of your screen. Whatever Claude Code is up to, the pet acts it out, with a speech bubble saying what it's touching right now.
 
+The pet and its helpers use the extended pixel activities from [Mascot Studio v1.7.0](https://github.com/Harriszed/mascot-studio/tree/v1.7.0), with the earlier v1.6.0 walk restored. When idle, Claude randomly switches between stretching, looking around and a quiet breath, without repeating the same animation immediately. Breathing and looking around are each slightly more likely than stretching. Each finishes one or two complete loops; live activity interrupts it. Reduced motion stops idle switching. Delegating Claude puts on shades and conducts floating task cards; actual sub-agents appear separately below. Idle gags play their full 10–14 second sequences; incoming Claude Code activity interrupts them.
+
+Sleeping uses [Mascot Studio v1.7.2](https://github.com/Harriszed/mascot-studio/tree/v1.7.2)'s blue nightcap, gentle bob and drifting Zs.
+
 <p align="center"><img src="docs/states.png" alt="Pet states"></p>
 
 - **Runs off your Claude Code hooks.** It just listens, no file watching.
 - **Speech bubbles** show the current action (`Editing App.tsx`, `npm test`, `Build failed`).
 - **Multiple sessions.** Several Claude Code windows show as coloured chips; click one to jump to that window.
 - **Task progress.** A little bar follows Claude's to-do list.
-- **Usage at a glance.** 5-hour and 7-day usage with time until reset.
+- **Usage at a glance.** 5-hour and 7-day usage with time until reset. Set **Settings > Claude Code > Usage refresh** to 1, 5 or 15 minutes, or 1 hour; the default is 5 minutes.
 - **Context warning.** Tells you when a session's memory is nearly full.
 - **Sub-agents.** Helpers appear as tiny Claudes underneath; click one for details.
 - **Local weather and time of day** change the scenery behind it.
 - **Random gags.** Every so often, when idle, it does something silly. See below.
 
-<p align="center"><img src="docs/multi.png" alt="Multiple sessions with task progress and usage"></p>
+<p align="center"><img src="docs/night.png" width="680" alt="Night scene with fireflies, stars and two active sub-agents"></p>
 
 ## Random gags
 
@@ -81,7 +85,7 @@ Turn them off with **Idle chatter** in Settings, or trigger one with **Play a ra
 
 <p align="center"><img src="docs/setup.gif" width="420" alt="Setup: click Connect Claude Code, then restart your Claude Code sessions"></p>
 
-These are unsigned community builds. Windows may show a SmartScreen prompt. macOS may require **System Settings > Privacy & Security ? Open Anyway** after your first launch attempt; managed Macs may block unsigned apps. Check that your download came from this repository. Code signing and notarisation require maintainer certificates.
+These are unsigned community builds. Windows may show a SmartScreen prompt. macOS may require **System Settings > Privacy & Security → Open Anyway** after your first launch attempt; managed Macs may block unsigned apps. Check that your download came from this repository. Code signing and notarisation require maintainer certificates.
 
 Right-click the pet or its tray/menu-bar icon to open **Settings**. Enable **Start at login** there if you want it ready whenever you sign in. On Linux, some desktops need a tray extension; Settings is also available by right-clicking the pet.
 
@@ -115,7 +119,7 @@ First choose **Settings > Disconnect**, then restart open Claude Code sessions a
 
 The pet checks once a day. **Check for updates** is also in Settings and the tray menu.
 
-- **Windows installer and Linux AppImage:** download an update inside the app, then choose **Restart and install** when ready. Updates are never downloaded or installed without your choice.
+- **Windows installer and Linux AppImage:** in Settings, choose **Check for updates**. The same button becomes **Download update**, shows download progress, then becomes **Restart and install**. This replaces the installed app and reopens it, keeping your preferences. Updates are never downloaded or installed without your choice. The tray menu also offers updates.
 - **macOS and Linux Debian package:** the update check opens the latest release. Replace the app or install the new package. Unsigned macOS apps cannot use the signed-app update mechanism.
 - **Source install:** quit the pet first, run the commands below in the project folder, then relaunch. Quitting first lets npm replace the Electron runtime on Windows.
 
@@ -131,6 +135,8 @@ Preferences live outside the install folder and survive updates. Moving the app?
 | Preference | What it does |
 |---|---|
 | Connect / repair / disconnect | Manage Claude Code hooks without a terminal |
+| Test connection | Verify the configured pet hook can run and reach this app; shows repair steps if it fails |
+| Usage refresh | Refresh 5h and 7d figures every 1, 5 or 15 minutes, or every hour |
 | Pet size | Large, medium or small |
 | Compact mode | A smaller strip of current activity |
 | Always on top | Keep the pet above other windows |
@@ -141,18 +147,26 @@ Preferences live outside the install folder and survive updates. Moving the app?
 | Completion chime | Optional quiet chime when Claude finishes; off by default |
 | Chime volume / Test chime | Adjust and preview the sound |
 | Start at login | Launch when you sign in |
+| Visual effects | Master switch, night sky/fireflies, atmosphere, work sparks and completion sparkles |
+| Retro scanlines | Optional faint CRT texture; off by default |
+| Effects intensity | Adjust the density and strength of decorative effects |
+| Boot sequence / Preview | Short wake-up and wave on launch; live activity interrupts it |
 | Check for updates | Find and install available updates |
 
-Changes save immediately. The tray keeps quick actions for Show / hide, Settings, corner placement, updates, previews and Quit. You can still drag the card anywhere, click the character for details, and click the faint arrow to cycle sizes.
+Changes save immediately. The tray keeps quick actions for Show / hide, Settings, corner placement, updates, previews and Quit. Drag the card by its header or footer, click the character for details, and click the faint arrow to cycle sizes.
 
-<p align="center"><img src="docs/settings.png" width="460" alt="Settings window with pet size, visibility, personality and startup preferences"></p>
-<p align="center"><img src="docs/weather.png" alt="Rain and snow"></p>
+Decorative effects stay inside the pet's scene. Night effects appear on clear nights; leaves appear in September through November. The weather switch works separately. Animated effects pause while the window is hidden and are skipped when your system requests reduced motion. Turning off visual effects also skips the boot sequence; compact mode skips scene effects.
+
+<p align="center"><img src="docs/settings.png" width="460" alt="Current settings with connection test, usage refresh, visual effects, boot preview and update controls"></p>
+<p align="center"><img src="docs/sleep.png" width="680" alt="Blue nightcap sleeping animation with drifting Zs and a night sky"></p>
+<p align="center"><img src="docs/weather.png" width="340" alt="Rain in the current pet scene"> <img src="docs/snow.png" width="340" alt="Snow in the current pet scene"></p>
 
 ## Building and releasing
 
 ```bash
 npm test
 npm run test:smoke       # live Electron checks on Windows, isolated from your preferences
+npm run test:vfx         # effect toggles, boot interruption and restart persistence
 npm run dist:win         # Windows installer
 npm run dist:mac         # universal DMG + ZIP; run on macOS
 npm run dist:linux       # AppImage + Debian package; run on Linux
@@ -163,7 +177,7 @@ Builds are written to `dist/`. See [the release guide](docs/RELEASING.md) for Gi
 ## Privacy and how it works
 
 - Claude Code hooks send small events (state, tool name, file name) to a local server on `127.0.0.1:47821`. Nothing leaves your machine for that.
-- **Usage readout:** to show your 5h / 7d usage, the app reads your Claude login token from `~/.claude/.credentials.json` and asks Anthropic's usage endpoint for your limits every couple of minutes. The token is not stored or sent anywhere else. That endpoint is undocumented and may change or stop working.
+- **Usage readout:** to show your 5h / 7d usage, the app reads your Claude login token from `~/.claude/.credentials.json` and asks Anthropic's usage endpoint at your chosen refresh interval (5 minutes by default). The token is not stored or sent anywhere else. That endpoint is undocumented and may change or stop working.
 - Weather uses your approximate location from a public weather service.
 - Settings are saved outside the installation: `%APPDATA%\claude-desktop-pet\window.json` on Windows, `~/Library/Application Support/claude-desktop-pet/window.json` on macOS, and `~/.config/claude-desktop-pet/window.json` on Linux (or your XDG config directory).
 - Release checks contact GitHub. An update is downloaded only after you select it. The completion chime is generated locally; no audio is uploaded or downloaded.
@@ -177,6 +191,9 @@ Builds are written to `dist/`. See [the release guide](docs/RELEASING.md) for Gi
 | `settings.html` / `settings.js` | Settings window |
 | `platform.js` | Startup, fullscreen detection and session focus |
 | `updates.js` | Release checks and installer updates |
+| `animation-catalog.js` / `idle-animations.js` | Pinned artwork timing and weighted idle rotation |
+| `vfx.js` / `vfx.css` | Scene effects, boot sequence and reduced-motion support |
+| `connection-test.js` / `usage-refresh.js` | Connection diagnostics and usage polling schedule |
 | `sounds.js` | Locally generated completion chime |
 | `hook.js` | Tiny script Claude Code runs on each event |
 | `install-hooks.js` | Adds or removes the hooks |

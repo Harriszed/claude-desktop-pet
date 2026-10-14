@@ -33,6 +33,14 @@ jobs:
         run: ${{ matrix.command }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify packaged Windows app
+        if: runner.os == 'Windows'
+        run: |
+          npm run test:packaged
+          node scripts/animation-smoke-test.js --packaged
+          node scripts/idle-smoke-test.js --packaged
+          node scripts/backdrop-smoke-test.js --packaged
+          npm run test:update
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.target }}
