@@ -5,9 +5,7 @@
   Thinking, reading, writing, running tests, failing, finishing, or just waiting for you.
 </p>
 
-<p align="center">
-  <img src="docs/hero.png" width="680" alt="Claude directing two helpers with task cards, session chips, task progress and usage">
-</p>
+
 
 <p align="center">
   <a href="docs/claude-desktop-pet-promo.mp4"><img src="docs/promo-poster.jpg" width="680" alt="Watch the Claude Desktop Pet promo: Claude Code at a glance"></a><br>
@@ -16,7 +14,6 @@
 
 <p align="center">
   <img src="docs/promo.gif" width="680" alt="Current desktop pet recorded with day and night effects, task-card delegation and live helpers"><br>
-  <sub><a href="docs/promo.mp4">Watch the current app in full quality</a> · Example sessions and usage figures</sub>
 </p>
 
 <p align="center">
