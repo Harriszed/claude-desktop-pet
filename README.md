@@ -10,6 +10,11 @@
 </p>
 
 <p align="center">
+  <a href="docs/claude-desktop-pet-promo.mp4"><img src="docs/promo-poster.jpg" width="680" alt="Watch the Claude Desktop Pet promo: Claude Code at a glance"></a><br>
+  <sub><a href="docs/claude-desktop-pet-promo.mp4"><b>Watch the 60-second promo</b></a> · Sound on · Live activity, sessions, helpers, usage, weather and effects</sub>
+</p>
+
+<p align="center">
   <img src="docs/promo.gif" width="680" alt="Current desktop pet recorded with day and night effects, task-card delegation and live helpers"><br>
   <sub><a href="docs/promo.mp4">Watch the current app in full quality</a> · Example sessions and usage figures</sub>
 </p>
