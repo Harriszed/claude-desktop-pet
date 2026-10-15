@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="docs/claude-desktop-pet-promo.mp4"><img src="docs/promo-poster.jpg" width="680" alt="Watch the Claude Desktop Pet promo: Claude Code at a glance"></a><br>
-  <sub><a href="docs/claude-desktop-pet-promo.mp4"><b>Watch the 60-second promo</b></a> · Sound on · Live activity, sessions, helpers, usage, weather and effects</sub>
+  <sub><a href="docs/claude-desktop-pet-promo.mp4"><b>Watch the 55-second promo</b></a> · Sound on · Live activity, sessions, helpers, usage, weather and effects</sub>
 </p>
 
 <p align="center">
